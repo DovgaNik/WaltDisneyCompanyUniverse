@@ -11,7 +11,7 @@ By:
 What did we do?
 ---
 
-1. Implemented authentication using Firebase Authentication. [Related issue.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/issues/1)
+1. Implemented authentication using Firebase Authentication. [Related issue.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/issues/1) [Related Pull Request.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/pull/3)
 2. Implemented basic display of the categories, sagas, and movies [Related issue.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/issues/2)
 
 Credits:

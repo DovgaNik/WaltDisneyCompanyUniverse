@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,11 +19,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WaltDisneyCompanyUniverseTheme {
+                var isAuthenticated by remember { mutableStateOf(false) }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    if (isAuthenticated) {
+                        Greeting(
+                            name = "User",
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    } else {
+                        AuthScreen(
+                            onLoginSuccess = { isAuthenticated = true }
+                        )
+                    }
                 }
             }
         }
@@ -33,15 +41,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
-        text = "Hello $name!",
+        text = "Welcome to Walt Disney Company Universe, $name!",
         modifier = modifier
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    WaltDisneyCompanyUniverseTheme {
-        Greeting("Android")
-    }
 }

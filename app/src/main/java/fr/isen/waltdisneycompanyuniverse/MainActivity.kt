@@ -21,10 +21,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
 import fr.isen.waltdisneycompanyuniverse.ui.NameOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.ui.ProfilePictureOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.ui.PronounsOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.ui.pronounsList
+import fr.isen.waltdisneycompanyuniverse.ui.saveUserToFirebase
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
@@ -41,8 +45,10 @@ class MainActivity : ComponentActivity() {
             WaltDisneyCompanyUniverseTheme(darkTheme = true) {
                 var currentScreen by remember { mutableStateOf(AppScreen.Auth) }
                 var userName by remember { mutableStateOf("") }
+                var userPronounsIndex by remember { mutableIntStateOf(-1) }
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
                 var isFirstTime by remember { mutableStateOf(false) }
+                var isLoading by remember { mutableStateOf(false) }
 
                 val profilePictures = listOf(
                     R.drawable.pfp_mickey,
@@ -59,6 +65,24 @@ class MainActivity : ComponentActivity() {
                     R.drawable.pfp_hulk
                 )
 
+                fun fetchUserData() {
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+                    isLoading = true
+                    FirebaseDatabase.getInstance().reference.child("users").child(uid).child("persona")
+                        .get().addOnSuccessListener { snapshot ->
+                            if (snapshot.exists()) {
+                                userName = snapshot.child("username").getValue(String::class.java) ?: ""
+                                selectedPfpIndex = snapshot.child("pfp").getValue(Int::class.java) ?: -1
+                                userPronounsIndex = snapshot.child("pronouns").getValue(Int::class.java) ?: -1
+                            }
+                            isLoading = false
+                            currentScreen = AppScreen.Home
+                        }.addOnFailureListener {
+                            isLoading = false
+                            currentScreen = AppScreen.Home
+                        }
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Transparent
@@ -74,46 +98,60 @@ class MainActivity : ComponentActivity() {
                                 )
                             )
                     ) {
-                        Scaffold(
-                            modifier = Modifier.fillMaxSize(),
-                            containerColor = Color.Transparent
-                        ) { innerPadding ->
-                            Box(modifier = Modifier.padding(innerPadding)) {
-                                when (currentScreen) {
-                                    AppScreen.Auth -> AuthScreen(
-                                        onAuthSuccess = { isSignUp ->
-                                            isFirstTime = isSignUp
-                                            if (isSignUp) {
-                                                currentScreen = AppScreen.OnboardingName
-                                            } else {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color.White
+                            )
+                        } else {
+                            Scaffold(
+                                modifier = Modifier.fillMaxSize(),
+                                containerColor = Color.Transparent
+                            ) { innerPadding ->
+                                Box(modifier = Modifier.padding(innerPadding)) {
+                                    when (currentScreen) {
+                                        AppScreen.Auth -> AuthScreen(
+                                            onAuthSuccess = { isSignUp ->
+                                                isFirstTime = isSignUp
+                                                if (isSignUp) {
+                                                    currentScreen = AppScreen.OnboardingName
+                                                } else {
+                                                    fetchUserData()
+                                                }
+                                            }
+                                        )
+                                        AppScreen.OnboardingName -> NameOnboardingScreen(
+                                            onNameSubmitted = { name ->
+                                                userName = name
+                                                currentScreen = AppScreen.OnboardingPronouns
+                                            }
+                                        )
+                                        AppScreen.OnboardingPronouns -> PronounsOnboardingScreen(
+                                            onPronounsSelected = { pronouns ->
+                                                userPronounsIndex = pronounsList.indexOf(pronouns)
+                                                currentScreen = AppScreen.OnboardingProfilePicture
+                                            }
+                                        )
+                                        AppScreen.OnboardingProfilePicture -> ProfilePictureOnboardingScreen(
+                                            onFinish = { pictureIndex ->
+                                                if (pictureIndex != null) {
+                                                    selectedPfpIndex = pictureIndex
+                                                }
+                                                // Save to Firebase Database
+                                                saveUserToFirebase(
+                                                    username = userName,
+                                                    pronouns = userPronounsIndex,
+                                                    pfp = selectedPfpIndex.takeIf { it != -1 } ?: 0
+                                                )
                                                 currentScreen = AppScreen.Home
                                             }
-                                        }
-                                    )
-                                    AppScreen.OnboardingName -> NameOnboardingScreen(
-                                        onNameSubmitted = { name ->
-                                            userName = name
-                                            currentScreen = AppScreen.OnboardingPronouns
-                                        }
-                                    )
-                                    AppScreen.OnboardingPronouns -> PronounsOnboardingScreen(
-                                        onPronounsSelected = { pronouns ->
-                                            currentScreen = AppScreen.OnboardingProfilePicture
-                                        }
-                                    )
-                                    AppScreen.OnboardingProfilePicture -> ProfilePictureOnboardingScreen(
-                                        onFinish = { pictureIndex ->
-                                            if (pictureIndex != null) {
-                                                selectedPfpIndex = pictureIndex
-                                            }
-                                            currentScreen = AppScreen.Home
-                                        }
-                                    )
-                                    AppScreen.Home -> WelcomeScreen(
-                                        name = userName.ifEmpty { "User" },
-                                        pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
-                                        isFirstTime = isFirstTime
-                                    )
+                                        )
+                                        AppScreen.Home -> WelcomeScreen(
+                                            name = userName.ifEmpty { "User" },
+                                            pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
+                                            isFirstTime = isFirstTime
+                                        )
+                                    }
                                 }
                             }
                         }

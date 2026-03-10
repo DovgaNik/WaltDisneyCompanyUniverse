@@ -21,7 +21,49 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import fr.isen.waltdisneycompanyuniverse.R
+
+val pronounsList = listOf("He/Him", "She/Her", "They/Them", "Prefer not to say", "Other")
+
+@Composable
+fun OnboardingFlow(onFinish: () -> Unit) {
+    var currentStep by remember { mutableStateOf(1) }
+    var name by remember { mutableStateOf("") }
+    var pronounsIndex by remember { mutableStateOf(0) }
+
+    when (currentStep){
+        1 -> NameOnboardingScreen(onNameSubmitted = {
+                name = it
+                currentStep = 2
+            })
+        2 -> PronounsOnboardingScreen(onPronounsSelected = { selected ->
+            pronounsIndex = pronounsList.indexOf(selected)
+            currentStep = 3
+        })
+        3 -> ProfilePictureOnboardingScreen(onFinish = {
+            saveUserToFirebase(name, pronounsIndex, it ?: 0)
+            onFinish()
+        })
+    }
+}
+
+fun saveUserToFirebase(username: String, pronouns: Int, pfp: Int) {
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val database = FirebaseDatabase.getInstance().reference
+
+    val userData = mapOf(
+        "persona" to mapOf(
+            "username" to username,
+            "pronouns" to pronouns,
+            "pfp" to pfp
+        )
+    )
+
+    database.child("users").child(uid).setValue(userData)
+}
+
 
 @Composable
 fun NameOnboardingScreen(
@@ -86,7 +128,6 @@ fun NameOnboardingScreen(
 fun PronounsOnboardingScreen(
     onPronounsSelected: (String) -> Unit
 ) {
-    val pronounsList = listOf("He/Him", "She/Her", "They/Them", "Prefer not to say", "Other")
     var expanded by remember { mutableStateOf(false) }
     var selectedPronouns by remember { mutableStateOf("") }
 

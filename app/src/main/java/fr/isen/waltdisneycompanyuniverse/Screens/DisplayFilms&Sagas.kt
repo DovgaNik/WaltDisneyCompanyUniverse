@@ -1,17 +1,23 @@
 package fr.isen.waltdisneycompanyuniverse.Screens
 
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.google.firebase.database.*
 import fr.isen.waltdisneycompanyuniverse.datas.*
 
@@ -55,31 +61,53 @@ fun Prologue(modifier: Modifier = Modifier) {
         }
     }
 
-    DisplayListOfFaS(modifier, categories)
+    DisplayListOfFaS(modifier, ref, categories)
 }
 
 
 @Composable
-fun DisplayListOfFaS(modifier: Modifier = Modifier, categories: List<Category>) {
+fun DisplayListOfFaS(modifier: Modifier = Modifier, ref: DatabaseReference, categories: List<Category>) {
     Log.d("DEBUG", "DisplayListOfFaS activé !")
-
+    var page_number:Int = 0
     LazyColumn {
+//        categories[page_number].forEach { franchise ->
+//
+//        }
         categories.forEach { category ->
-
-            item { Text(category.categorie) }
-
+            item { Text(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                text = category.categorie,
+            ) }
             category.franchises.forEach { franchise ->
-
                 item { Text(franchise.nom) }
-
                 franchise.sous_sagas.forEach { saga ->
-
                     saga.films.forEach { film ->
                         item { Text("${film.numero} - ${film.titre}") }
                     }
-
                 }
             }
         }
     }
+    /*Column(
+        modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Button(
+            onClick = {
+                var malonetunes = Category(categorie = "Malonetunes")
+                var fraudchise = Franchise("123456789", "Commissar Donvhan")
+                var firstSaga = SousSaga("ISEN, dawn of war")
+                var secondSaga = SousSaga("Donvhan, rise of demon hunters")
+                firstSaga.films = listOf<Film>(Film("8008142", 0, "Donvhan, the new Commissar", 2025, "Action Sci&Fi"), Film("78951239874563219876543211475369", 2, "ISEN's -2 floor, the last crusade", 2028, "Action Drama"))
+                secondSaga.films = listOf<Film>(Film("456", 0, "Malo, the first rookie", 2025, genre = "Action"), Film("321", 1, "Anne-Amélie the last specialist", 2027, "Action Adventure"))
+                fraudchise.sous_sagas = listOf<SousSaga>(firstSaga, secondSaga)
+                malonetunes.franchises = listOf<Franchise>(fraudchise)
+                ref.child("7").child("Malo_Cinematic_Universe").setValue(malonetunes)
+                ref.child("7").child("Malo_Cinematic_Universe")
+            }
+        ) {
+            Text("Ajouter Malo's Tomfooleryverse")
+        }
+    }*/
 }

@@ -1,4 +1,5 @@
-Les données sont ordonnées sous une forme qui varie en fonction de l'existence (ou innexistence) de sagas.
+Les données sont ordonnées sous une forme qui varie en fonction de l'existence (ou inexistence) de sagas.
+
 Pour les franchises avec sagas (telles que Star Wars) :
 categories
   |-- [0]
@@ -16,7 +17,26 @@ categories
                                 |-- [0]
                                      |-- annee: Int
                                      |-- genre: String
-                                     |-- id
+                                     |-- id: String
+                                     |-- numero: Int
+                                     |-- titre: String
+
+Pour les franchises sans sagas (telles que X-Men Cinematic Universe, Indiana Jones) :
+categories
+  |-- [0]
+       |-- id: String
+       |-- categorie: [Nom]:String
+       |-- franchises
+            |-- [0]
+                 |-- id: String
+                 |-- nom: String
+                 |-- films
+                      |-- [0]
+                           |-- annee: Int
+                           |-- genre: String
+                           |-- id: String
+                           |-- numero: Int
+                           |-- titre: String
 
 Règle de lecture des données :
     Seule la première "couche" de données doit être lue :

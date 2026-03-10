@@ -25,6 +25,8 @@ import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
 import fr.isen.waltdisneycompanyuniverse.ui.NameOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.ui.ProfilePictureOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.ui.PronounsOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.ui.pronounsList
+import fr.isen.waltdisneycompanyuniverse.ui.saveUserToFirebase
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
             WaltDisneyCompanyUniverseTheme(darkTheme = true) {
                 var currentScreen by remember { mutableStateOf(AppScreen.Auth) }
                 var userName by remember { mutableStateOf("") }
+                var userPronounsIndex by remember { mutableIntStateOf(-1) }
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
                 var isFirstTime by remember { mutableStateOf(false) }
 
@@ -98,6 +101,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                     AppScreen.OnboardingPronouns -> PronounsOnboardingScreen(
                                         onPronounsSelected = { pronouns ->
+                                            userPronounsIndex = pronounsList.indexOf(pronouns)
                                             currentScreen = AppScreen.OnboardingProfilePicture
                                         }
                                     )
@@ -106,6 +110,12 @@ class MainActivity : ComponentActivity() {
                                             if (pictureIndex != null) {
                                                 selectedPfpIndex = pictureIndex
                                             }
+                                            // Save to Firebase Database
+                                            saveUserToFirebase(
+                                                username = userName,
+                                                pronouns = userPronounsIndex,
+                                                pfp = selectedPfpIndex.takeIf { it != -1 } ?: 0
+                                            )
                                             currentScreen = AppScreen.Home
                                         }
                                     )

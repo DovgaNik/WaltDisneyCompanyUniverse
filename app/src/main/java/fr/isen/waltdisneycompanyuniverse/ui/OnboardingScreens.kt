@@ -1,5 +1,6 @@
 package fr.isen.waltdisneycompanyuniverse.ui
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,7 +22,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import fr.isen.waltdisneycompanyuniverse.R
+
+val pronounsList = listOf("He/Him", "She/Her", "They/Them", "Prefer not to say", "Other")
+
+fun saveUserToFirebase(username: String, pronouns: Int, pfp: Int) {
+    val user = FirebaseAuth.getInstance().currentUser
+    val uid = user?.uid ?: run {
+        Log.e("FirebaseSave", "No user logged in, cannot save data.")
+        return
+    }
+    
+    val database = FirebaseDatabase.getInstance().reference
+    val userData = mapOf(
+        "persona" to mapOf(
+            "username" to username,
+            "pronouns" to pronouns,
+            "pfp" to pfp
+        )
+    )
+
+    database.child("users").child(uid).setValue(userData)
+        .addOnSuccessListener {
+            Log.d("FirebaseSave", "User data successfully saved for UID: $uid")
+        }
+        .addOnFailureListener { e ->
+            Log.e("FirebaseSave", "Error saving user data", e)
+        }
+}
 
 @Composable
 fun NameOnboardingScreen(
@@ -86,7 +116,6 @@ fun NameOnboardingScreen(
 fun PronounsOnboardingScreen(
     onPronounsSelected: (String) -> Unit
 ) {
-    val pronounsList = listOf("He/Him", "She/Her", "They/Them", "Prefer not to say", "Other")
     var expanded by remember { mutableStateOf(false) }
     var selectedPronouns by remember { mutableStateOf("") }
 
@@ -175,7 +204,6 @@ fun ProfilePictureOnboardingScreen(
     onFinish: (Int?) -> Unit
 ) {
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
-    // Explicitly typed as Int to avoid inference errors while images are being moved
     val profilePictures: List<Int> = listOf(
         R.drawable.pfp_mickey,
         R.drawable.pfp_donald,
@@ -238,7 +266,6 @@ fun ProfilePictureOnboardingScreen(
                         )
                         .clickable { selectedIndex = index }
                 ) {
-                    // This will compile once images are moved to res/drawable/
                     Image(
                         painter = painterResource(id = resId),
                         contentDescription = "Profile Picture Option",

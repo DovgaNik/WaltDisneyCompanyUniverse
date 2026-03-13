@@ -29,6 +29,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import fr.isen.waltdisneycompanyuniverse.datas.Film
 import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
 import fr.isen.waltdisneycompanyuniverse.Screens.AuthScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.MainScreen
@@ -57,6 +58,10 @@ class MainActivity : ComponentActivity() {
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
                 var isFirstTime by remember { mutableStateOf(false) }
                 var isLoading by remember { mutableStateOf(false) }
+                var requestedFilmUuid by remember { mutableStateOf("9dd2ab1d-d32e-44ed-9e43-ea97e4697cb9") }
+                var selectedFilm by remember { mutableStateOf<Film?>(null) }
+                var isFilmLoading by remember { mutableStateOf(false) }
+                var filmLoadError by remember { mutableStateOf<String?>(null) }
 
                 val profilePictures = listOf(
                     R.drawable.pfp_mickey,
@@ -98,6 +103,91 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     })
+                }
+
+                fun fetchFilmByUuid(uuid: String) {
+                    val normalizedUuid = uuid.trim()
+                    if (normalizedUuid.isBlank()) {
+                        selectedFilm = null
+                        filmLoadError = "Missing film UUID"
+                        isFilmLoading = false
+                        return
+                    }
+
+                    isFilmLoading = true
+                    filmLoadError = null
+                    selectedFilm = null
+
+                    val categoriesRef = FirebaseDatabase.getInstance().reference.child("categories")
+                    categoriesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                        fun idMatches(snapshot: DataSnapshot, target: String): Boolean {
+                            val rawId = snapshot.child("id").getValue(String::class.java)?.trim()
+                            val fallbackKey = snapshot.key?.trim()
+                            return rawId.equals(target, ignoreCase = true) || fallbackKey.equals(target, ignoreCase = true)
+                        }
+
+                        fun isFilmNode(snapshot: DataSnapshot): Boolean {
+                            return snapshot.hasChild("titre") && snapshot.hasChild("annee") && snapshot.hasChild("genre")
+                        }
+
+                        fun toFilm(snapshot: DataSnapshot): Film {
+                            val rawId = snapshot.child("id").getValue(String::class.java)?.trim().orEmpty()
+                            val fallbackId = snapshot.key?.trim().orEmpty()
+                            return Film(
+                                id = if (rawId.isNotBlank()) rawId else fallbackId,
+                                numero = snapshot.child("numero").getValue(Int::class.java) ?: 0,
+                                titre = snapshot.child("titre").getValue(String::class.java).orEmpty(),
+                                annee = snapshot.child("annee").getValue(Int::class.java) ?: 0,
+                                genre = snapshot.child("genre").getValue(String::class.java).orEmpty()
+                            )
+                        }
+
+                        fun findFilmRecursively(snapshot: DataSnapshot, target: String): Film? {
+                            if (idMatches(snapshot, target) && isFilmNode(snapshot)) {
+                                return toFilm(snapshot)
+                            }
+                            for (child in snapshot.children) {
+                                val candidate = findFilmRecursively(child, target)
+                                if (candidate != null) return candidate
+                            }
+                            return null
+                        }
+
+                        fun findAnyIdRecursively(snapshot: DataSnapshot, target: String): Boolean {
+                            if (idMatches(snapshot, target)) {
+                                return true
+                            }
+                            for (child in snapshot.children) {
+                                if (findAnyIdRecursively(child, target)) return true
+                            }
+                            return false
+                        }
+
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            val foundFilm = findFilmRecursively(snapshot, normalizedUuid)
+                            val idExistsButNotFilm = foundFilm == null && findAnyIdRecursively(snapshot, normalizedUuid)
+
+                            selectedFilm = foundFilm
+                            filmLoadError = if (idExistsButNotFilm) {
+                                "UUID exists but it is not a film id"
+                            } else {
+                                null
+                            }
+                            isFilmLoading = false
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            filmLoadError = error.message
+                            selectedFilm = null
+                            isFilmLoading = false
+                        }
+                    })
+                }
+
+                LaunchedEffect(currentScreen, requestedFilmUuid) {
+                    if (currentScreen == AppScreen.Home) {
+                        fetchFilmByUuid(requestedFilmUuid)
+                    }
                 }
 
                 Surface(
@@ -178,6 +268,11 @@ class MainActivity : ComponentActivity() {
                                             AppScreen.Home -> MainScreen(
                                                 userName = userName,
                                                 pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
+                                                film = selectedFilm,
+                                                filmUuid = requestedFilmUuid,
+                                                isFilmLoading = isFilmLoading,
+                                                filmError = filmLoadError,
+                                                onRetryFilmLoad = { fetchFilmByUuid(requestedFilmUuid) },
                                                 onProfileClick = {
                                                     val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
                                                     startActivity(intent)

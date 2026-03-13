@@ -29,10 +29,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.isen.waltdisneycompanyuniverse.R
+import fr.isen.waltdisneycompanyuniverse.datas.Film
 
 @Composable
-fun MainScreen(userName: String, pfpResId: Int, onProfileClick: () -> Unit = {}) {
+fun MainScreen(
+    userName: String,
+    pfpResId: Int,
+    film: Film?,
+    filmUuid: String,
+    isFilmLoading: Boolean,
+    filmError: String?,
+    onRetryFilmLoad: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
+) {
     val scrollState = rememberScrollState()
+    val isFilmNotFound = !isFilmLoading && filmError == null && film == null
+    val displayedTitle = film?.titre?.takeIf { it.isNotBlank() } ?: "Unknown movie"
+    val displayedGenre = film?.genre?.takeIf { it.isNotBlank() } ?: "Unknown genre"
+    val displayedYear = film?.annee?.takeIf { it > 0 }?.toString() ?: "N/A"
     
     // Using a Column as the root ensures the Top Bar and the Content Area are physically separated
     Column(
@@ -103,25 +117,51 @@ fun MainScreen(userName: String, pfpResId: Int, onProfileClick: () -> Unit = {})
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Movie Title
-                Text(
-                    text = "Kuzco L'empereur\nMégalo",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 32.sp
-                    )
-                )
+                when {
+                    isFilmLoading -> {
+                        Text(
+                            text = "Loading film...",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    filmError != null -> {
+                        Text(
+                            text = "Failed to load film: $filmError",
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+                        TextButton(onClick = onRetryFilmLoad) {
+                            Text(text = "Retry")
+                        }
+                    }
+                    isFilmNotFound -> {
+                        Text(
+                            text = "No film found for UUID: $filmUuid",
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    else -> {
+                        Text(
+                            text = displayedTitle,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 32.sp
+                            )
+                        )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                // Tags
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Tag(text = "Genre")
-                    Tag(text = "1203")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Tag(text = displayedGenre)
+                            Tag(text = displayedYear)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

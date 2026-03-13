@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,18 +25,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
 import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
+import fr.isen.waltdisneycompanyuniverse.ui.MainScreen
 import fr.isen.waltdisneycompanyuniverse.ui.NameOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.ui.ProfilePictureOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.ui.PronounsOnboardingScreen
-import fr.isen.waltdisneycompanyuniverse.ui.pronounsList
 import fr.isen.waltdisneycompanyuniverse.ui.saveUserToFirebase
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
+import kotlinx.coroutines.delay
 
 enum class AppScreen {
-    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Home
+    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home
 }
 
 class MainActivity : ComponentActivity() {
@@ -76,10 +80,10 @@ class MainActivity : ComponentActivity() {
                                 userPronounsIndex = snapshot.child("pronouns").getValue(Int::class.java) ?: -1
                             }
                             isLoading = false
-                            currentScreen = AppScreen.Home
+                            currentScreen = AppScreen.Welcome
                         }.addOnFailureListener {
                             isLoading = false
-                            currentScreen = AppScreen.Home
+                            currentScreen = AppScreen.Welcome
                         }
                 }
 
@@ -109,48 +113,59 @@ class MainActivity : ComponentActivity() {
                                 containerColor = Color.Transparent
                             ) { innerPadding ->
                                 Box(modifier = Modifier.padding(innerPadding)) {
-                                    when (currentScreen) {
-                                        AppScreen.Auth -> AuthScreen(
-                                            onAuthSuccess = { isSignUp ->
-                                                isFirstTime = isSignUp
-                                                if (isSignUp) {
-                                                    currentScreen = AppScreen.OnboardingName
-                                                } else {
-                                                    fetchUserData()
+                                    Crossfade(
+                                        targetState = currentScreen,
+                                        animationSpec = tween(durationMillis = 1000),
+                                        label = "ScreenTransition"
+                                    ) { screen ->
+                                        when (screen) {
+                                            AppScreen.Auth -> AuthScreen(
+                                                onAuthSuccess = { isSignUp ->
+                                                    isFirstTime = isSignUp
+                                                    if (isSignUp) {
+                                                        currentScreen = AppScreen.OnboardingName
+                                                    } else {
+                                                        fetchUserData()
+                                                    }
                                                 }
-                                            }
-                                        )
-                                        AppScreen.OnboardingName -> NameOnboardingScreen(
-                                            onNameSubmitted = { name ->
-                                                userName = name
-                                                currentScreen = AppScreen.OnboardingPronouns
-                                            }
-                                        )
-                                        AppScreen.OnboardingPronouns -> PronounsOnboardingScreen(
-                                            onPronounsSelected = { pronouns ->
-                                                userPronounsIndex = pronounsList.indexOf(pronouns)
-                                                currentScreen = AppScreen.OnboardingProfilePicture
-                                            }
-                                        )
-                                        AppScreen.OnboardingProfilePicture -> ProfilePictureOnboardingScreen(
-                                            onFinish = { pictureIndex ->
-                                                if (pictureIndex != null) {
-                                                    selectedPfpIndex = pictureIndex
+                                            )
+                                            AppScreen.OnboardingName -> NameOnboardingScreen(
+                                                onNameSubmitted = { name ->
+                                                    userName = name
+                                                    currentScreen = AppScreen.OnboardingPronouns
                                                 }
-                                                // Save to Firebase Database
-                                                saveUserToFirebase(
-                                                    username = userName,
-                                                    pronouns = userPronounsIndex,
-                                                    pfp = selectedPfpIndex.takeIf { it != -1 } ?: 0
-                                                )
-                                                currentScreen = AppScreen.Home
-                                            }
-                                        )
-                                        AppScreen.Home -> WelcomeScreen(
-                                            name = userName.ifEmpty { "User" },
-                                            pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
-                                            isFirstTime = isFirstTime
-                                        )
+                                            )
+                                            AppScreen.OnboardingPronouns -> PronounsOnboardingScreen(
+                                                onPronounsSelected = { pronouns ->
+                                                    userPronounsIndex = pronounsList.indexOf(pronouns)
+                                                    currentScreen = AppScreen.OnboardingProfilePicture
+                                                }
+                                            )
+                                            AppScreen.OnboardingProfilePicture -> ProfilePictureOnboardingScreen(
+                                                onFinish = { pictureIndex ->
+                                                    if (pictureIndex != null) {
+                                                        selectedPfpIndex = pictureIndex
+                                                    }
+                                                    // Save to Firebase Database
+                                                    saveUserToFirebase(
+                                                        username = userName,
+                                                        pronouns = userPronounsIndex,
+                                                        pfp = selectedPfpIndex.takeIf { it != -1 } ?: 0
+                                                    )
+                                                    currentScreen = AppScreen.Welcome
+                                                }
+                                            )
+                                            AppScreen.Welcome -> WelcomeScreen(
+                                                name = userName.ifEmpty { "User" },
+                                                pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
+                                                isFirstTime = isFirstTime,
+                                                onTimeout = { currentScreen = AppScreen.Home }
+                                            )
+                                            AppScreen.Home -> MainScreen(
+                                                userName = userName,
+                                                pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -163,7 +178,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun WelcomeScreen(name: String, pfpResId: Int, isFirstTime: Boolean) {
+fun WelcomeScreen(name: String, pfpResId: Int, isFirstTime: Boolean, onTimeout: () -> Unit) {
+    LaunchedEffect(Unit) {
+        delay(2500) // Display welcome screen for 2.5 seconds
+        onTimeout()
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,

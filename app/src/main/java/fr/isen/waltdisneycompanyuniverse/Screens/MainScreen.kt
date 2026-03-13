@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import fr.isen.waltdisneycompanyuniverse.R
 import fr.isen.waltdisneycompanyuniverse.datas.Film
 
@@ -39,7 +40,11 @@ fun MainScreen(
     filmUuid: String,
     isFilmLoading: Boolean,
     filmError: String?,
+    posterUrl: String?,
+    isPosterLoading: Boolean,
+    posterError: String?,
     onRetryFilmLoad: () -> Unit = {},
+    onRetryPosterLoad: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
@@ -107,12 +112,42 @@ fun MainScreen(
                     shape = RoundedCornerShape(24.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.pfp_mickey), // Placeholder for Kuzco
-                        contentDescription = "Movie Poster",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                    when {
+                        posterUrl != null -> {
+                            AsyncImage(
+                                model = posterUrl,
+                                contentDescription = "Movie Poster",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        isPosterLoading -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
+                        }
+                        else -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.pfp_mickey),
+                                contentDescription = "Movie Poster Placeholder",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
+
+                if (posterError != null && !isFilmLoading) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = posterError,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall
                     )
+                    TextButton(onClick = onRetryPosterLoad) {
+                        Text(text = "Retry poster")
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

@@ -40,7 +40,15 @@ import fr.isen.waltdisneycompanyuniverse.Screens.saveUserToFirebase
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 enum class AppScreen {
     Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home
@@ -62,6 +70,10 @@ class MainActivity : ComponentActivity() {
                 var selectedFilm by remember { mutableStateOf<Film?>(null) }
                 var isFilmLoading by remember { mutableStateOf(false) }
                 var filmLoadError by remember { mutableStateOf<String?>(null) }
+                var posterUrl by remember { mutableStateOf<String?>(null) }
+                var isPosterLoading by remember { mutableStateOf(false) }
+                var posterLoadError by remember { mutableStateOf<String?>(null) }
+                var posterRetryToken by remember { mutableIntStateOf(0) }
 
                 val profilePictures = listOf(
                     R.drawable.pfp_mickey,
@@ -105,6 +117,49 @@ class MainActivity : ComponentActivity() {
                     })
                 }
 
+                suspend fun fetchPosterUrlFromTmdb(title: String): String? {
+                    val apiKey = BuildConfig.TMDB_API_KEY.trim()
+                    if (apiKey.isBlank()) {
+                        throw IllegalStateException("TMDB_API_KEY is missing in local.properties")
+                    }
+
+                    val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
+                    val endpoint = "https://api.themoviedb.org/3/search/movie?query=$encodedTitle&api_key=$apiKey"
+
+                    return withContext(Dispatchers.IO) {
+                        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            connectTimeout = 10_000
+                            readTimeout = 10_000
+                        }
+
+                        try {
+                            val responseCode = connection.responseCode
+                            val body = if (responseCode in 200..299) {
+                                connection.inputStream.bufferedReader().use { it.readText() }
+                            } else {
+                                connection.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                            }
+
+                            if (responseCode !in 200..299) {
+                                throw IOException("TMDB request failed ($responseCode): $body")
+                            }
+
+                            val results = JSONObject(body).optJSONArray("results") ?: return@withContext null
+                            for (index in 0 until results.length()) {
+                                val result = results.optJSONObject(index) ?: continue
+                                val posterPath = result.optString("poster_path")
+                                if (!posterPath.isNullOrBlank() && posterPath != "null") {
+                                    return@withContext "https://image.tmdb.org/t/p/w500$posterPath"
+                                }
+                            }
+                            null
+                        } finally {
+                            connection.disconnect()
+                        }
+                    }
+                }
+
                 fun fetchFilmByUuid(uuid: String) {
                     val normalizedUuid = uuid.trim()
                     if (normalizedUuid.isBlank()) {
@@ -117,6 +172,9 @@ class MainActivity : ComponentActivity() {
                     isFilmLoading = true
                     filmLoadError = null
                     selectedFilm = null
+                    posterUrl = null
+                    isPosterLoading = false
+                    posterLoadError = null
 
                     val categoriesRef = FirebaseDatabase.getInstance().reference.child("categories")
                     categoriesRef.addListenerForSingleValueEvent(object : ValueEventListener {
@@ -179,6 +237,9 @@ class MainActivity : ComponentActivity() {
                         override fun onCancelled(error: DatabaseError) {
                             filmLoadError = error.message
                             selectedFilm = null
+                            posterUrl = null
+                            posterLoadError = null
+                            isPosterLoading = false
                             isFilmLoading = false
                         }
                     })
@@ -187,6 +248,31 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(currentScreen, requestedFilmUuid) {
                     if (currentScreen == AppScreen.Home) {
                         fetchFilmByUuid(requestedFilmUuid)
+                    }
+                }
+
+                LaunchedEffect(selectedFilm?.id, selectedFilm?.titre, posterRetryToken) {
+                    val title = selectedFilm?.titre?.trim().orEmpty()
+                    if (title.isBlank()) {
+                        posterUrl = null
+                        posterLoadError = null
+                        isPosterLoading = false
+                        return@LaunchedEffect
+                    }
+
+                    isPosterLoading = true
+                    posterLoadError = null
+                    posterUrl = null
+
+                    try {
+                        posterUrl = fetchPosterUrlFromTmdb(title)
+                        if (posterUrl == null) {
+                            posterLoadError = "No poster found on TMDB"
+                        }
+                    } catch (exception: Exception) {
+                        posterLoadError = exception.message ?: "Failed to load poster"
+                    } finally {
+                        isPosterLoading = false
                     }
                 }
 
@@ -272,7 +358,11 @@ class MainActivity : ComponentActivity() {
                                                 filmUuid = requestedFilmUuid,
                                                 isFilmLoading = isFilmLoading,
                                                 filmError = filmLoadError,
+                                                posterUrl = posterUrl,
+                                                isPosterLoading = isPosterLoading,
+                                                posterError = posterLoadError,
                                                 onRetryFilmLoad = { fetchFilmByUuid(requestedFilmUuid) },
+                                                onRetryPosterLoad = { posterRetryToken++ },
                                                 onProfileClick = {
                                                     val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
                                                     startActivity(intent)

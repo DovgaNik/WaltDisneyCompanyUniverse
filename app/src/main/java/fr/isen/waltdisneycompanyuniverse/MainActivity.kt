@@ -1,5 +1,6 @@
 package fr.isen.waltdisneycompanyuniverse
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,14 +25,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
-import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
-import fr.isen.waltdisneycompanyuniverse.ui.MainScreen
-import fr.isen.waltdisneycompanyuniverse.ui.NameOnboardingScreen
-import fr.isen.waltdisneycompanyuniverse.ui.ProfilePictureOnboardingScreen
-import fr.isen.waltdisneycompanyuniverse.ui.PronounsOnboardingScreen
-import fr.isen.waltdisneycompanyuniverse.ui.saveUserToFirebase
+import fr.isen.waltdisneycompanyuniverse.Screens.AuthScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.MainScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.NameOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.ProfilePictureOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.PronounsOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.saveUserToFirebase
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
@@ -69,22 +73,31 @@ class MainActivity : ComponentActivity() {
                     R.drawable.pfp_hulk
                 )
 
-                fun fetchUserData() {
+                fun startListeningToUserData() {
                     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
                     isLoading = true
-                    FirebaseDatabase.getInstance().reference.child("users").child(uid).child("persona")
-                        .get().addOnSuccessListener { snapshot ->
+                    val userRef = FirebaseDatabase.getInstance().reference.child("users").child(uid).child("persona")
+                    
+                    userRef.addValueEventListener(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
                             if (snapshot.exists()) {
                                 userName = snapshot.child("username").getValue(String::class.java) ?: ""
                                 selectedPfpIndex = snapshot.child("pfp").getValue(Int::class.java) ?: -1
                                 userPronounsIndex = snapshot.child("pronouns").getValue(Int::class.java) ?: -1
                             }
-                            isLoading = false
-                            currentScreen = AppScreen.Welcome
-                        }.addOnFailureListener {
-                            isLoading = false
-                            currentScreen = AppScreen.Welcome
+                            if (isLoading) {
+                                isLoading = false
+                                currentScreen = AppScreen.Welcome
+                            }
                         }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            if (isLoading) {
+                                isLoading = false
+                                currentScreen = AppScreen.Welcome
+                            }
+                        }
+                    })
                 }
 
                 Surface(
@@ -125,7 +138,7 @@ class MainActivity : ComponentActivity() {
                                                     if (isSignUp) {
                                                         currentScreen = AppScreen.OnboardingName
                                                     } else {
-                                                        fetchUserData()
+                                                        startListeningToUserData()
                                                     }
                                                 }
                                             )
@@ -152,7 +165,8 @@ class MainActivity : ComponentActivity() {
                                                         pronouns = userPronounsIndex,
                                                         pfp = selectedPfpIndex.takeIf { it != -1 } ?: 0
                                                     )
-                                                    currentScreen = AppScreen.Welcome
+                                                    // Start listening for changes after onboarding
+                                                    startListeningToUserData()
                                                 }
                                             )
                                             AppScreen.Welcome -> WelcomeScreen(
@@ -163,7 +177,11 @@ class MainActivity : ComponentActivity() {
                                             )
                                             AppScreen.Home -> MainScreen(
                                                 userName = userName,
-                                                pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey
+                                                pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
+                                                onProfileClick = {
+                                                    val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
+                                                    startActivity(intent)
+                                                }
                                             )
                                         }
                                     }

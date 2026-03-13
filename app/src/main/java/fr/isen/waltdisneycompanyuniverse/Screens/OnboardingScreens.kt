@@ -1,4 +1,4 @@
-package fr.isen.waltdisneycompanyuniverse.ui
+package fr.isen.waltdisneycompanyuniverse.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,8 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import fr.isen.waltdisneycompanyuniverse.R
-
-val pronounsList = listOf("He/Him", "She/Her", "They/Them", "Prefer not to say", "Other")
+import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
 
 @Composable
 fun OnboardingFlow(onFinish: () -> Unit) {

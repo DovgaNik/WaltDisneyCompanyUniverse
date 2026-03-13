@@ -1,4 +1,4 @@
-package fr.isen.waltdisneycompanyuniverse.ui
+package fr.isen.waltdisneycompanyuniverse.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*

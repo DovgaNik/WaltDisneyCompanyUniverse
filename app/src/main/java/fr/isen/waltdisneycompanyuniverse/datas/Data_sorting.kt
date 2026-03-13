@@ -7,7 +7,8 @@ data class Category(
 data class Franchise(
     var id: String = "",
     var nom: String = "",
-    var sous_sagas: List<SousSaga> = emptyList()
+    var sous_sagas: List<SousSaga> = emptyList(),
+    var films: List<Film> = emptyList()
 )
 
 data class SousSaga(

@@ -1,0 +1,86 @@
+Les données sont ordonnées sous une forme qui varie en fonction de l'existence (ou inexistence) de sagas.
+
+Pour les franchises avec sagas (telles que Star Wars) :
+categories
+  |-- [0]
+       |-- id: String
+       |-- categorie: [Nom de la catégorie]:String
+       |-- franchises
+            |-- [0]
+                 |-- id: String
+                 |-- nom: String
+                 |-- sous_sagas
+                      |-- [0]
+                           |-- id: String
+                           |-- nom: String
+                           |-- films
+                                |-- [0]
+                                     |-- annee: Int
+                                     |-- genre: String
+                                     |-- id: String
+                                     |-- numero: Int
+                                     |-- titre: String
+
+Pour les franchises sans sagas (telles que X-Men Cinematic Universe, Indiana Jones) :
+categories
+  |-- [0]
+       |-- id: String
+       |-- categorie: [Nom de la catégorie]:String
+       |-- franchises
+            |-- [0]
+                 |-- id: String
+                 |-- nom: String
+                 |-- films
+                      |-- [0]
+                           |-- annee: Int
+                           |-- genre: String
+                           |-- id: String
+                           |-- numero: Int
+                           |-- titre: String
+
+Règle de lecture des données :
+    Seule la première "couche" de données doit être lue, cela implique que nous ne devrions demander uniquement une liste des informations suivantes :
+      - id
+      - categorie
+Ainsi, sur l'affichage initiale seront exposés uniquement les informations utiles. Dans ce premier niveau nous aurons juste les noms des catégories (ex : "Grandes Sagas", "Autres Franchises Marvel", etc...). Ceci est dans le but de limiter l'utilisation réseau.
+
+Une fois qu'une catégorie est cliquée, il nous faut charger les informations de cette pour avoir un affichage ressemblant à quelque chose comme :
+
+================================
+| [retour] Nom de la catégorie |
+|------------------------------|
+|            Saga1             |
+|   *Film_1*                   |
+|   *Film_2*                   |
+|   *Film_3*                   |
+|            [...]             |
+|            Saga2             |
+|   *Film_1*                   |
+|   *Film_2*                   |
+|            [...]             |
+|------------------------------|
+|     Navigateur de pages      |
+================================
+
+================================
+| [retour] Nom de la catégorie |
+|------------------------------|
+|   *Film_1*                   |
+|   *Film_2*                   |
+|   *Film_3*                   |
+|   *Film_4*                   |
+|   *Film_5*                   |
+|            [...]             |
+|------------------------------|
+|     Navigateur de pages      |
+================================
+
+La différentiation d'affichage se fera avec un test sur la class "Franchise" pour savoir laquelle des variables "sous_sagas" et "films" est vide ou nulle.
+data class Franchise(
+    var id: String = "",
+    var nom: String = "",
+    var sous_sagas: List<SousSaga> = emptyList(),
+    var films: List<Film> = emptyList()
+)
+Dans le cas où les deux sont nulles, il serait bon d'afficher que la Franchise est vide.
+Dans le cas où les deux contiennent des valeurs, je ne sais pas quel comportement adopter.

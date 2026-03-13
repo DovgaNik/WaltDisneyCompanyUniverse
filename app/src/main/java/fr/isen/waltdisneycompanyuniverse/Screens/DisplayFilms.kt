@@ -9,13 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import fr.isen.waltdisneycompanyuniverse.datas.Film
 import kotlin.collections.forEach
+import androidx.compose.foundation.lazy.items
+
 
 /*
 Function to take care of displaying a list of films.
 It should show :
  [TODO] An image of the Saga (or Franchise) if available.
- [TODO] A set amount of film per page.
- [TODO] A system to switch between display pages.
  */
 @Composable
 fun DisplayFilms(modifier: Modifier, work_in_progress_image: String?, films: List<Film>){
@@ -24,19 +24,14 @@ fun DisplayFilms(modifier: Modifier, work_in_progress_image: String?, films: Lis
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        films.forEach { film ->
+        items(films) { film ->
             Card(
                 onClick = {
-                    DisplayFilmDetails(Modifier, film)
+                    // TODO : Mettre un renvois vers la fonction d'affichage des détails de Nikita.
                 }
             ) {
                 Text("Work in progress.")
             }
         }
-
-        // Selecting page bar.
-        /*if(films.size > max_films_per_page){
-
-        }*/
     }
 }

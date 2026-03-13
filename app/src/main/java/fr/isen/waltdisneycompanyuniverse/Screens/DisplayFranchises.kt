@@ -23,72 +23,81 @@ Function to set up the connection to the database.
  */
 @Composable
 fun Prologue(modifier: Modifier = Modifier) {
+    Log.d("DEBUG", "Prologue activé !")
 
     val ref = FirebaseDatabase
         .getInstance()
         .getReference(sagas_and_films)
 
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    LaunchedEffect(Unit) {
 
-    /*DisposableEffect(Unit) {
-
-        val listener = object : ValueEventListener {
+        ref.addValueEventListener(object : ValueEventListener {
 
             override fun onDataChange(snapshot: DataSnapshot) {
-                Log.d("FIREBASE", snapshot.value.toString())
 
-                val list = mutableListOf<Category>()
+                val loadedCategories = mutableListOf<Category>()
 
-                for (child in snapshot.children) {
-                    val category = child.getValue(Category::class.java)
-                    category?.let { list.add(it) }
+                snapshot.children.forEach { categorySnapshot ->
+                    val category = categorySnapshot.getValue(Category::class.java)
+                    category?.let { loadedCategories.add(it) }
                 }
-                Log.d("FIREBASE", snapshot.value.toString())
 
-                categories = list
-                Log.d("FIREBASE", snapshot.value.toString())
+                categories = loadedCategories
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e("FIREBASE", "Erreur", error.toException())
+                Log.e("Firebase", "Erreur lecture", error.toException())
             }
+
+        })
+    }
+    var selectedFranchise by remember { mutableStateOf<Franchise?>(null) }
+
+    if (selectedFranchise == null){
+        DisplayFranchises(
+            modifier,
+            ref,
+            categories
+        ) { franchise ->
+            selectedFranchise = franchise
         }
-
-        ref.addValueEventListener(listener)
-
-        onDispose {
-            ref.removeEventListener(listener)
-        }
-    }*/
-
-    DisplayListOfFaS(modifier, ref, categories)
+    } else {
+        DisplayFilms(
+            modifier,
+            null,
+            selectedFranchise!!.films
+        )
+    }
 }
 
 
 @Composable
-fun DisplayListOfFaS(modifier: Modifier = Modifier, ref: DatabaseReference, categories: List<Category>) {
+fun DisplayFranchises(modifier: Modifier = Modifier, ref: DatabaseReference, categories: List<Category>, onFranchiseClick: (Franchise) -> Unit) {
     Log.d("DEBUG", "DisplayListOfFaS activé !")
-    var page_number:Int = 0
     LazyColumn (
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        items(categories[page_number].franchises) { franchise ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                onClick = {
-                    if (franchise.sous_sagas == emptyList<SousSaga>() && franchise.films != emptyList<Film>()){
-
+        categories.forEach { categorie ->
+            items(categorie.franchises) { franchise ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    onClick = {
+                        // On vérifie si c'est une franchise qui fonctionne en sagas ou juste en films.
+                        if (franchise.sous_sagas == emptyList<SousSaga>() && franchise.films != emptyList<Film>()){
+                            onFranchiseClick(franchise)
+                        }
+                    },
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Yellow,
+                    ),
+                ) {
+                    Column {
+                        Text(text = franchise.nom, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
-                },
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.Yellow,
-                ),
-            ) {
-                Column() {
-                    Text(text = franchise.nom, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

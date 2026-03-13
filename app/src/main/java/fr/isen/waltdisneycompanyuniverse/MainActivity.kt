@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fr.isen.waltdisneycompanyuniverse.Screens.Prologue
 import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
 import fr.isen.waltdisneycompanyuniverse.ui.NameOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.ui.ProfilePictureOnboardingScreen
@@ -30,7 +31,7 @@ import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
 
 enum class AppScreen {
-    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Home
+    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Home, Prologue
 }
 
 class MainActivity : ComponentActivity() {
@@ -86,7 +87,7 @@ class MainActivity : ComponentActivity() {
                                             if (isSignUp) {
                                                 currentScreen = AppScreen.OnboardingName
                                             } else {
-                                                currentScreen = AppScreen.Home
+                                                currentScreen = AppScreen.Prologue
                                             }
                                         }
                                     )
@@ -106,9 +107,10 @@ class MainActivity : ComponentActivity() {
                                             if (pictureIndex != null) {
                                                 selectedPfpIndex = pictureIndex
                                             }
-                                            currentScreen = AppScreen.Home
+                                            currentScreen = AppScreen.Prologue
                                         }
                                     )
+                                    AppScreen.Prologue -> Prologue()
                                     AppScreen.Home -> WelcomeScreen(
                                         name = userName.ifEmpty { "User" },
                                         pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,

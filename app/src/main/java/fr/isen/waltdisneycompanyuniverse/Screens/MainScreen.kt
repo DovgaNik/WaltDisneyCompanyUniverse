@@ -43,8 +43,13 @@ fun MainScreen(
     posterUrl: String?,
     isPosterLoading: Boolean,
     posterError: String?,
+    trailerUrl: String?,
+    isTrailerLoading: Boolean,
+    trailerError: String?,
     onRetryFilmLoad: () -> Unit = {},
     onRetryPosterLoad: () -> Unit = {},
+    onRetryTrailerLoad: () -> Unit = {},
+    onOpenTrailer: (String) -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
@@ -209,6 +214,28 @@ fun MainScreen(
                     ActionItem(icon = Icons.Default.Add, text = "Want to watch")
                     ActionItem(icon = Icons.Default.RemoveRedEye, text = "Watched")
                     ActionItem(icon = Icons.Default.RadioButtonChecked, text = "Have a DVD / BlueRay")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { trailerUrl?.let(onOpenTrailer) },
+                    enabled = trailerUrl != null && !isTrailerLoading
+                ) {
+                    Text(if (isTrailerLoading) "Loading trailer..." else "Watch trailer")
+                }
+
+                if (trailerError != null && !isFilmLoading) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = trailerError,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    TextButton(onClick = onRetryTrailerLoad) {
+                        Text(text = "Retry trailer")
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

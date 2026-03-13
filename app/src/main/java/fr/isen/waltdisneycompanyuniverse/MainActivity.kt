@@ -1,6 +1,7 @@
 package fr.isen.waltdisneycompanyuniverse
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -66,7 +67,7 @@ class MainActivity : ComponentActivity() {
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
                 var isFirstTime by remember { mutableStateOf(false) }
                 var isLoading by remember { mutableStateOf(false) }
-                var requestedFilmUuid by remember { mutableStateOf("9dd2ab1d-d32e-44ed-9e43-ea97e4697cb9") }
+                var requestedFilmUuid by remember { mutableStateOf("732725b2-beb5-4e04-8909-81e5ed12dbdc") }
                 var selectedFilm by remember { mutableStateOf<Film?>(null) }
                 var isFilmLoading by remember { mutableStateOf(false) }
                 var filmLoadError by remember { mutableStateOf<String?>(null) }
@@ -74,6 +75,10 @@ class MainActivity : ComponentActivity() {
                 var isPosterLoading by remember { mutableStateOf(false) }
                 var posterLoadError by remember { mutableStateOf<String?>(null) }
                 var posterRetryToken by remember { mutableIntStateOf(0) }
+                var trailerUrl by remember { mutableStateOf<String?>(null) }
+                var isTrailerLoading by remember { mutableStateOf(false) }
+                var trailerLoadError by remember { mutableStateOf<String?>(null) }
+                var trailerRetryToken by remember { mutableIntStateOf(0) }
 
                 val profilePictures = listOf(
                     R.drawable.pfp_mickey,
@@ -160,6 +165,93 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                suspend fun fetchTrailerUrlFromTmdb(title: String): String? {
+                    val apiKey = BuildConfig.TMDB_API_KEY.trim()
+                    if (apiKey.isBlank()) {
+                        throw IllegalStateException("TMDB_API_KEY is missing in local.properties")
+                    }
+
+                    val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
+                    val searchEndpoint = "https://api.themoviedb.org/3/search/movie?query=$encodedTitle&api_key=$apiKey"
+
+                    return withContext(Dispatchers.IO) {
+                        fun readBody(connection: HttpURLConnection, successful: Boolean): String {
+                            return if (successful) {
+                                connection.inputStream.bufferedReader().use { it.readText() }
+                            } else {
+                                connection.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                            }
+                        }
+
+                        val searchConnection = (URL(searchEndpoint).openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            connectTimeout = 10_000
+                            readTimeout = 10_000
+                        }
+
+                        val tmdbMovieId = try {
+                            val responseCode = searchConnection.responseCode
+                            val body = readBody(searchConnection, responseCode in 200..299)
+                            if (responseCode !in 200..299) {
+                                throw IOException("TMDB search failed ($responseCode): $body")
+                            }
+
+                            val results = JSONObject(body).optJSONArray("results") ?: return@withContext null
+                            if (results.length() == 0) return@withContext null
+                            val firstMovie = results.optJSONObject(0) ?: return@withContext null
+                            if (!firstMovie.has("id")) return@withContext null
+                            firstMovie.optInt("id")
+                        } finally {
+                            searchConnection.disconnect()
+                        }
+
+                        val videosEndpoint = "https://api.themoviedb.org/3/movie/$tmdbMovieId/videos?api_key=$apiKey"
+                        val videosConnection = (URL(videosEndpoint).openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            connectTimeout = 10_000
+                            readTimeout = 10_000
+                        }
+
+                        try {
+                            val responseCode = videosConnection.responseCode
+                            val body = readBody(videosConnection, responseCode in 200..299)
+                            if (responseCode !in 200..299) {
+                                throw IOException("TMDB videos failed ($responseCode): $body")
+                            }
+
+                            val results = JSONObject(body).optJSONArray("results") ?: return@withContext null
+
+                            var youtubeOfficialTrailer: String? = null
+                            var youtubeTrailer: String? = null
+                            var youtubeAny: String? = null
+
+                            for (index in 0 until results.length()) {
+                                val video = results.optJSONObject(index) ?: continue
+                                val key = video.optString("key")
+                                val site = video.optString("site")
+                                val type = video.optString("type")
+                                val official = video.optBoolean("official", false)
+                                if (key.isBlank() || site != "YouTube") continue
+
+                                val youtubeUrl = "https://www.youtube.com/watch?v=$key"
+                                if (official && type == "Trailer" && youtubeOfficialTrailer == null) {
+                                    youtubeOfficialTrailer = youtubeUrl
+                                }
+                                if (type == "Trailer" && youtubeTrailer == null) {
+                                    youtubeTrailer = youtubeUrl
+                                }
+                                if (youtubeAny == null) {
+                                    youtubeAny = youtubeUrl
+                                }
+                            }
+
+                            youtubeOfficialTrailer ?: youtubeTrailer ?: youtubeAny
+                        } finally {
+                            videosConnection.disconnect()
+                        }
+                    }
+                }
+
                 fun fetchFilmByUuid(uuid: String) {
                     val normalizedUuid = uuid.trim()
                     if (normalizedUuid.isBlank()) {
@@ -175,6 +267,9 @@ class MainActivity : ComponentActivity() {
                     posterUrl = null
                     isPosterLoading = false
                     posterLoadError = null
+                    trailerUrl = null
+                    isTrailerLoading = false
+                    trailerLoadError = null
 
                     val categoriesRef = FirebaseDatabase.getInstance().reference.child("categories")
                     categoriesRef.addListenerForSingleValueEvent(object : ValueEventListener {
@@ -240,6 +335,9 @@ class MainActivity : ComponentActivity() {
                             posterUrl = null
                             posterLoadError = null
                             isPosterLoading = false
+                            trailerUrl = null
+                            trailerLoadError = null
+                            isTrailerLoading = false
                             isFilmLoading = false
                         }
                     })
@@ -273,6 +371,31 @@ class MainActivity : ComponentActivity() {
                         posterLoadError = exception.message ?: "Failed to load poster"
                     } finally {
                         isPosterLoading = false
+                    }
+                }
+
+                LaunchedEffect(selectedFilm?.id, selectedFilm?.titre, trailerRetryToken) {
+                    val title = selectedFilm?.titre?.trim().orEmpty()
+                    if (title.isBlank()) {
+                        trailerUrl = null
+                        trailerLoadError = null
+                        isTrailerLoading = false
+                        return@LaunchedEffect
+                    }
+
+                    isTrailerLoading = true
+                    trailerLoadError = null
+                    trailerUrl = null
+
+                    try {
+                        trailerUrl = fetchTrailerUrlFromTmdb(title)
+                        if (trailerUrl == null) {
+                            trailerLoadError = "No trailer found on TMDB"
+                        }
+                    } catch (exception: Exception) {
+                        trailerLoadError = exception.message ?: "Failed to load trailer"
+                    } finally {
+                        isTrailerLoading = false
                     }
                 }
 
@@ -361,8 +484,16 @@ class MainActivity : ComponentActivity() {
                                                 posterUrl = posterUrl,
                                                 isPosterLoading = isPosterLoading,
                                                 posterError = posterLoadError,
+                                                trailerUrl = trailerUrl,
+                                                isTrailerLoading = isTrailerLoading,
+                                                trailerError = trailerLoadError,
                                                 onRetryFilmLoad = { fetchFilmByUuid(requestedFilmUuid) },
                                                 onRetryPosterLoad = { posterRetryToken++ },
+                                                onRetryTrailerLoad = { trailerRetryToken++ },
+                                                onOpenTrailer = { url ->
+                                                    val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                    startActivity(trailerIntent)
+                                                },
                                                 onProfileClick = {
                                                     val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
                                                     startActivity(intent)

@@ -1,5 +1,6 @@
 package fr.isen.waltdisneycompanyuniverse.Screens
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.ui.Modifier
 import fr.isen.waltdisneycompanyuniverse.datas.Film
 import kotlin.collections.forEach
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 
 
 /*
@@ -18,19 +20,30 @@ It should show :
  [TODO] An image of the Saga (or Franchise) if available.
  */
 @Composable
-fun DisplayFilms(modifier: Modifier, work_in_progress_image: String?, films: List<Film>){
-    LazyColumn(
-        modifier = Modifier
+fun DisplayFilms(
+    modifier: Modifier,
+    films: List<Film>,
+    onBack: () -> Unit,
+    onFilmClick: () -> Unit
+){
+    Column(
+        modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        items(films) { film ->
-            Card(
-                onClick = {
-                    // TODO : Mettre un renvois vers la fonction d'affichage des détails de Nikita.
+
+        Button(onClick = { onBack() }) {
+            Text("Retour")
+        }
+        LazyColumn{
+            items(films) { film ->
+                Card(
+                    onClick = {
+                        // TODO : Mettre un renvois vers la fonction d'affichage des détails de Nikita.
+                    }
+                ) {
+                    Text("Work in progress.")
                 }
-            ) {
-                Text("Work in progress.")
             }
         }
     }

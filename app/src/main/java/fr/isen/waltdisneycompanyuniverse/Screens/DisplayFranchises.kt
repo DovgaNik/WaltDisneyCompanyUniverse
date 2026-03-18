@@ -27,7 +27,7 @@ fun Prologue(modifier: Modifier = Modifier) {
 
     val ref = FirebaseDatabase
         .getInstance()
-        .getReference(sagas_and_films)
+        .getReference(categories)
 
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     LaunchedEffect(Unit) {
@@ -52,28 +52,53 @@ fun Prologue(modifier: Modifier = Modifier) {
 
         })
     }
-    var selectedFranchise by remember { mutableStateOf<Franchise?>(null) }
+    var selectedFilms by remember { mutableStateOf<List<Film>>(emptyList<Film>()) }
+    var selectedSaga by remember { mutableStateOf<List<SousSaga>>(emptyList<SousSaga>()) }
 
-    if (selectedFranchise == null){
+    if (selectedSaga == emptyList<SousSaga>() && selectedFilms == emptyList<Film>()){
+        Log.d("debug", "selectedFranchise == null")
         DisplayFranchises(
             modifier,
             ref,
-            categories
-        ) { franchise ->
-            selectedFranchise = franchise
-        }
-    } else {
+            categories,
+            onFranchiseFilmsClick = { films ->
+                selectedFilms = films
+            },
+            onFanchiseSousSagaClick = { sagas ->
+                selectedSaga = sagas
+            }
+        )
+    }
+    // Dans le cas où notre liste de films à afficher n'est pas vide.
+    else if (selectedFilms != emptyList<Film>()) {
+        Log.d("debug", "selectedFranchise (films) : $selectedFilms")
         DisplayFilms(
             modifier,
-            null,
-            selectedFranchise!!.films
+            selectedFilms,
+            onBack = {  // Si l'utilisateur décide de retourner en arrière, nous n'avons plus à lui afficher les films.
+                selectedFilms = emptyList<Film>()
+            }
+        )
+    }
+    // Si nous avons sélectionné une saga.
+    else if (selectedSaga != emptyList<SousSaga>()){
+        Log.d("debug", "selectedFranchise (sous saga) : $selectedSaga")
+        DisplaySagas(
+            modifier,
+            selectedSaga,
+            onBack = {  // Si l'utilisateur décide de revenir en arrière, nous n'avons plus à afficher les sagas.
+                selectedSaga = emptyList<SousSaga>()
+            },
+            onFilmClick = { films ->
+                selectedFilms = films
+            }
         )
     }
 }
 
 
 @Composable
-fun DisplayFranchises(modifier: Modifier = Modifier, ref: DatabaseReference, categories: List<Category>, onFranchiseClick: (Franchise) -> Unit) {
+fun DisplayFranchises(modifier: Modifier = Modifier, ref: DatabaseReference, categories: List<Category>, onFranchiseFilmsClick: (List<Film>) -> Unit, onFanchiseSousSagaClick: (List<SousSaga>) -> Unit) {
     Log.d("DEBUG", "DisplayListOfFaS activé !")
     LazyColumn (
         modifier = modifier
@@ -86,9 +111,11 @@ fun DisplayFranchises(modifier: Modifier = Modifier, ref: DatabaseReference, cat
                     modifier = Modifier
                         .fillMaxWidth(),
                     onClick = {
-                        // On vérifie si c'est une franchise qui fonctionne en sagas ou juste en films.
-                        if (franchise.sous_sagas == emptyList<SousSaga>() && franchise.films != emptyList<Film>()){
-                            onFranchiseClick(franchise)
+                        // On regarde si c'est une saga ou des films.
+                        if (franchise.sous_sagas != emptyList<SousSaga>() && franchise.films == emptyList<Film>()){
+                            onFanchiseSousSagaClick(franchise.sous_sagas)
+                        } else if (franchise.sous_sagas == emptyList<SousSaga>() && franchise.films != emptyList<Film>()){
+                            onFranchiseFilmsClick(franchise.films)
                         }
                     },
                     colors = CardDefaults.cardColors(
@@ -101,21 +128,6 @@ fun DisplayFranchises(modifier: Modifier = Modifier, ref: DatabaseReference, cat
                 }
             }
         }
-        /*categories.forEach { category ->
-            item { Text(
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                text = category.categorie,
-            ) }
-            category.franchises.forEach { franchise ->
-                item { Text(franchise.nom) }
-                franchise.sous_sagas.forEach { saga ->
-                    saga.films.forEach { film ->
-                        item { Text("${film.numero} - ${film.titre}") }
-                    }
-                }
-            }
-        }*/
     }
     /*Column(
         modifier.fillMaxHeight(),

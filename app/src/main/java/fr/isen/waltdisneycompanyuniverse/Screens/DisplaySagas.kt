@@ -20,7 +20,11 @@ It should provide with a display consisting of:
  [TODO] Displaying
  */
 @Composable
-fun DisplaySagas(modifier: Modifier = Modifier, sagas: List<SousSaga>, onBack: () -> Unit, onFilmClick: (List<Film?>) -> Unit){
+fun DisplaySagas(
+    modifier: Modifier = Modifier,
+    sagas: List<SousSaga>,
+    onBack: () -> Unit,
+    onFilmClick: (List<Film>) -> Unit){
     Column(
         modifier = modifier
             .fillMaxSize()

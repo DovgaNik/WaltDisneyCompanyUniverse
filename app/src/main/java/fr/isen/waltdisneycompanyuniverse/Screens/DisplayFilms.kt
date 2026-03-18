@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import fr.isen.waltdisneycompanyuniverse.datas.Film
-import kotlin.collections.forEach
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 
@@ -24,7 +23,6 @@ fun DisplayFilms(
     modifier: Modifier,
     films: List<Film>,
     onBack: () -> Unit,
-    onFilmClick: () -> Unit
 ){
     Column(
         modifier = modifier

@@ -25,6 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fr.isen.waltdisneycompanyuniverse.Screens.Prologue
+import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
+import fr.isen.waltdisneycompanyuniverse.ui.NameOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.ui.ProfilePictureOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.ui.PronounsOnboardingScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError

@@ -1,19 +1,19 @@
 package fr.isen.waltdisneycompanyuniverse.datas
 data class Category(
     var categorie: String = "",
-    var franchises: List<Franchise> = emptyList()
+    var franchises: List<Franchise> = emptyList<Franchise>()
 )
 
 data class Franchise(
     var id: String = "",
     var nom: String = "",
-    var sous_sagas: List<SousSaga> = emptyList(),
-    var films: List<Film> = emptyList()
+    var sous_sagas: List<SousSaga> = emptyList<SousSaga>(),
+    var films: List<Film> = emptyList<Film>()
 )
 
 data class SousSaga(
     var nom: String = "",
-    var films: List<Film> = emptyList()
+    var films: List<Film> = emptyList<Film>()
 )
 
 data class Film(

@@ -86,7 +86,7 @@ class MainActivity : ComponentActivity() {
                 var userPronounsIndex by remember { mutableIntStateOf(-1) }
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
                 var isFirstTime by remember { mutableStateOf(false) }
-                var isLoading by remember { mutableStateOf(false) }
+                var isLoading by remember { mutableStateOf(true) }
                 var requestedFilmUuid by remember { mutableStateOf("732725b2-beb5-4e04-8909-81e5ed12dbdc") }
                 var selectedFilm by remember { mutableStateOf<Film?>(null) }
                 var isFilmLoading by remember { mutableStateOf(false) }
@@ -116,7 +116,12 @@ class MainActivity : ComponentActivity() {
                 )
 
                 fun startListeningToUserData() {
-                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid
+                    if (uid == null) {
+                        isLoading = false
+                        currentScreen = AppScreen.Auth
+                        return
+                    }
                     isLoading = true
                     val userRef = FirebaseDatabase.getInstance().reference.child("users").child(uid).child("persona")
                     
@@ -129,7 +134,7 @@ class MainActivity : ComponentActivity() {
                             }
                             if (isLoading) {
                                 isLoading = false
-                                currentScreen = AppScreen.Welcome
+                                currentScreen = if (snapshot.exists()) AppScreen.Welcome else AppScreen.OnboardingName
                             }
                         }
 
@@ -361,6 +366,17 @@ class MainActivity : ComponentActivity() {
                             isFilmLoading = false
                         }
                     })
+                }
+
+                LaunchedEffect(Unit) {
+                    val existingUser = FirebaseAuth.getInstance().currentUser
+                    if (existingUser == null) {
+                        isLoading = false
+                        currentScreen = AppScreen.Auth
+                    } else {
+                        isFirstTime = false
+                        startListeningToUserData()
+                    }
                 }
 
                 LaunchedEffect(currentScreen, requestedFilmUuid) {

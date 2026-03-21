@@ -188,11 +188,11 @@ class EditProfileActivity : ComponentActivity() {
                                 Spacer(modifier = Modifier.height(48.dp))
 
                                 // Edit Fields
-                                EditField(label = "Name", value = userName, onClick = { showNameDialog = true })
+                                EditField(label = "Username", value = userName, onClick = { showNameDialog = true })
                                 Spacer(modifier = Modifier.height(24.dp))
-                                EditField(label = "email", value = email, onClick = { showEmailDialog = true })
+                                EditField(label = "Email", value = email, onClick = { showEmailDialog = true })
                                 Spacer(modifier = Modifier.height(24.dp))
-                                EditField(label = "password", value = "********", onClick = { showPasswordDialog = true })
+                                EditField(label = "Password", value = "********", onClick = { showPasswordDialog = true })
 
                                 Spacer(modifier = Modifier.height(32.dp))
 

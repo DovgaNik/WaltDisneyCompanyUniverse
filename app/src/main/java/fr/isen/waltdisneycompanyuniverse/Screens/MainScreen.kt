@@ -113,7 +113,7 @@ fun MainScreen(
                 if (posterError != null && !isFilmLoading) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = posterError,
+                        text = "Couldn't load the poster right now.",
                         color = Color.White,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodySmall
@@ -135,7 +135,7 @@ fun MainScreen(
                     }
                     filmError != null -> {
                         Text(
-                            text = "Failed to load film: $filmError",
+                            text = "Couldn't load this film right now.",
                             color = Color.White,
                             textAlign = TextAlign.Center
                         )
@@ -226,7 +226,7 @@ fun MainScreen(
                 if (trailerError != null && !isFilmLoading) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = trailerError,
+                        text = "Couldn't load the trailer right now.",
                         color = Color.White,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodySmall

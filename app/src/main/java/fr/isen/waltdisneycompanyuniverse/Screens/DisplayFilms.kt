@@ -39,7 +39,7 @@ fun DisplayFilms(
                 UnifiedListItemCard(
                     title = "${film.numero}. ${film.titre}",
                     subtitle = "${film.annee} - ${film.genre}",
-                    statusText = statusKey?.let { "Marked: ${statusLabel(it)}" },
+                    statusText = statusKey?.let { statusLabel(it) },
                     posterTitle = film.titre,
                     onClick = {
                         onFilmSelected(film)

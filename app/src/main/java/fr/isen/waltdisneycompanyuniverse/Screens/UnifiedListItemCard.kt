@@ -152,7 +152,7 @@ fun UnifiedListItemCard(
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF656565)
+                        color = Color(0xFF151515)
                     )
                 }
             }

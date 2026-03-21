@@ -29,7 +29,7 @@ It should show :
 fun DisplayFilms(
     modifier: Modifier,
     films: List<Film>,
-    filmStatuses: Map<String, String> = emptyMap(),
+    filmStatuses: Map<String, List<String>> = emptyMap(),
     onBack: () -> Unit,
     onFilmSelected: (Film) -> Unit,
 ){
@@ -55,11 +55,15 @@ fun DisplayFilms(
 
         LazyColumn {
             items(films) { film ->
-                val statusKey = filmStatuses[film.id]
+                val statuses = filmStatuses[film.id] ?: emptyList()
+                val statusText = if (statuses.isNotEmpty()) {
+                    statuses.joinToString(" • ") { statusLabel(it) }
+                } else null
+
                 UnifiedListItemCard(
                     title = "${film.numero}. ${film.titre}",
                     subtitle = "${film.annee} - ${film.genre}",
-                    statusText = statusKey?.let { statusLabel(it) },
+                    statusText = statusText,
                     posterTitle = film.titre,
                     onClick = {
                         onFilmSelected(film)

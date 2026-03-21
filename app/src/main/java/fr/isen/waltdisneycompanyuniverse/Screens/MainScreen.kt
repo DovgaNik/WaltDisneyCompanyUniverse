@@ -11,12 +11,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.RadioButtonChecked
-import androidx.compose.material.icons.filled.RemoveRedEye
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -52,7 +50,7 @@ fun MainScreen(
     trailerUrl: String?,
     isTrailerLoading: Boolean,
     trailerError: String?,
-    currentFilmStatus: String? = null,
+    currentFilmStatuses: List<String> = emptyList(),
     onCollectionStatusSelected: (String) -> Unit = {},
     usersWantingToGetRid: List<String> = emptyList(),
     isLoadingUsersWantingToGetRid: Boolean = false,
@@ -200,25 +198,25 @@ fun MainScreen(
                     ActionItem(
                         icon = Icons.Default.Add,
                         text = "Want to watch",
-                        isSelected = currentFilmStatus == statusWantToWatch,
+                        isSelected = currentFilmStatuses.contains(statusWantToWatch),
                         onClick = { onCollectionStatusSelected(statusWantToWatch) }
                     )
                     ActionItem(
                         icon = Icons.Default.RemoveRedEye,
                         text = "Watched",
-                        isSelected = currentFilmStatus == statusWatched,
+                        isSelected = currentFilmStatuses.contains(statusWatched),
                         onClick = { onCollectionStatusSelected(statusWatched) }
                     )
                     ActionItem(
                         icon = Icons.Default.RadioButtonChecked,
                         text = "Have a DVD / BlueRay",
-                        isSelected = currentFilmStatus == statusOwnDvdBluray,
+                        isSelected = currentFilmStatuses.contains(statusOwnDvdBluray),
                         onClick = { onCollectionStatusSelected(statusOwnDvdBluray) }
                     )
                     ActionItem(
                         icon = Icons.Default.FavoriteBorder,
                         text = "Want to get rid",
-                        isSelected = currentFilmStatus == statusWantToGetRid,
+                        isSelected = currentFilmStatuses.contains(statusWantToGetRid),
                         onClick = { onCollectionStatusSelected(statusWantToGetRid) }
                     )
                 }
@@ -373,24 +371,27 @@ fun AppBottomNavBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onHomeClick) {
+                    val isSelected = currentScreen == AppScreen.Home
                     Icon(
-                        Icons.Default.Home,
+                        imageVector = if (isSelected) Icons.Filled.Home else Icons.Outlined.Home,
                         contentDescription = "Home",
-                        tint = if (currentScreen == AppScreen.Home) Color(0xFF1A237E) else Color.Black
+                        tint = if (isSelected) Color(0xFF1A237E) else Color.Black
                     )
                 }
                 IconButton(onClick = onCategoriesClick) {
+                    val isSelected = currentScreen == AppScreen.Categories
                     Icon(
-                        Icons.AutoMirrored.Filled.List,
+                        imageVector = if (isSelected) Icons.AutoMirrored.Filled.List else Icons.AutoMirrored.Outlined.List,
                         contentDescription = "List",
-                        tint = if (currentScreen == AppScreen.Categories) Color(0xFF1A237E) else Color.Black
+                        tint = if (isSelected) Color(0xFF1A237E) else Color.Black
                     )
                 }
                 IconButton(onClick = onFavoritesClick) {
+                    val isSelected = currentScreen == AppScreen.MarkedMovies
                     Icon(
-                        Icons.Default.FavoriteBorder,
+                        imageVector = if (isSelected) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Favorites",
-                        tint = if (currentScreen == AppScreen.MarkedMovies) Color(0xFF1A237E) else Color.Black
+                        tint = if (isSelected) Color(0xFF1A237E) else Color.Black
                     )
                 }
             }
@@ -400,8 +401,8 @@ fun AppBottomNavBar(
 
         FloatingActionButton(
             onClick = onSearchClick,
-            containerColor = Color.White,
-            contentColor = Color.Black,
+            containerColor = if (currentScreen == AppScreen.Search) Color(0xFF1A237E) else Color.White,
+            contentColor = if (currentScreen == AppScreen.Search) Color.White else Color.Black,
             shape = CircleShape,
             modifier = Modifier.size(60.dp)
         ) {

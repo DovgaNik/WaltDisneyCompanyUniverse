@@ -361,7 +361,11 @@ fun AppBottomNavBar(
                     )
                 }
                 IconButton(onClick = onFavoritesClick) {
-                    Icon(Icons.Default.FavoriteBorder, contentDescription = "Favorites", tint = Color.Black)
+                    Icon(
+                        Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorites",
+                        tint = if (currentScreen == AppScreen.MarkedMovies) Color(0xFF1A237E) else Color.Black
+                    )
                 }
             }
         }

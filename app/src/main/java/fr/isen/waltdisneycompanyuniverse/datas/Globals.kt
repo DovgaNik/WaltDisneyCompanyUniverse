@@ -12,8 +12,15 @@ const val statusWantToGetRid: String = "want_to_get_rid"
 
 val collectionStatusKeys = listOf(
 	statusWantToWatch,
-	statusWatched,
 	statusOwnDvdBluray,
+	statusWatched,
+	statusWantToGetRid
+)
+
+val markedMoviesStatusOrder = listOf(
+	statusWantToWatch,
+	statusOwnDvdBluray,
+	statusWatched,
 	statusWantToGetRid
 )
 

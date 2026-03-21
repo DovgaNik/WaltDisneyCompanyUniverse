@@ -11,8 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -68,11 +70,18 @@ fun SearchScreen(
             value = query,
             onValueChange = { query = it },
             singleLine = true,
-            label = { Text("Search") },
-            placeholder = { Text("Search by film, franchise, saga...") },
+            label = { Text("Search", color = Color.White) },
+            placeholder = { Text("Search by film, franchise, saga...", color = Color.White.copy(alpha = 0.6f)) },
             modifier = Modifier
                 .padding(top = 8.dp)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedBorderColor = Color.White,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                cursorColor = Color.White
+            )
         )
 
         Row(
@@ -85,7 +94,18 @@ fun SearchScreen(
                 FilterChip(
                     selected = selectedParameter == parameter,
                     onClick = { selectedParameter = parameter },
-                    label = { Text(parameter.label) }
+                    label = { Text(parameter.label) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        labelColor = Color.White,
+                        selectedLabelColor = Color(0xFF070222),
+                        selectedContainerColor = Color.White
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = selectedParameter == parameter,
+                        borderColor = Color.White.copy(alpha = 0.5f),
+                        selectedBorderColor = Color.White
+                    )
                 )
             }
         }
@@ -123,5 +143,3 @@ fun SearchScreen(
         }
     }
 }
-
-

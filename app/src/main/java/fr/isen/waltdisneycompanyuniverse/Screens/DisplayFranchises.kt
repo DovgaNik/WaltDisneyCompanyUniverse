@@ -21,7 +21,7 @@ Function to set up the connection to the database.
 @Composable
 fun Prologue(
     modifier: Modifier = Modifier,
-    filmStatuses: Map<String, String> = emptyMap(),
+    filmStatuses: Map<String, List<String>> = emptyMap(),
     onFilmSelected: (Film) -> Unit = {}
 ) {
     Log.d("DEBUG", "Prologue activé !")
@@ -130,28 +130,4 @@ fun DisplayFranchises(modifier: Modifier = Modifier, ref: DatabaseReference, cat
             }
         }
     }
-    /*Column(
-        modifier.fillMaxHeight(),
-        verticalArrangement = Arrangement.Center
-    ) {
-        Button(
-            onClick = {
-                var malonetunes = Category(categorie = "Malonetunes")
-                var fraudchise = Franchise("123456789", "Commissar Donvhan")
-                var firstSaga = SousSaga("ISEN, dawn of war")
-                var secondSaga = SousSaga("Donvhan, rise of demon hunters")
-                firstSaga.films = listOf<Film>(Film("8008142", 0, "Donvhan, the new Commissar", 2025, "Action Sci&Fi"), Film("78951239874563219876543211475369", 2, "ISEN's -2 floor, the last crusade", 2028, "Action Drama"))
-                secondSaga.films = listOf<Film>(Film("456", 0, "Malo, the first rookie", 2025, genre = "Action"), Film("321", 1, "Anne-Amélie the last specialist", 2027, "Action Adventure"))
-                fraudchise.sous_sagas = listOf<SousSaga>(firstSaga, secondSaga)
-                malonetunes.franchises = listOf<Franchise>(fraudchise)
-                ref.child("7").child("Malo_Cinematic_Universe").setValue(malonetunes)
-                ref.child("7").child("Malo_Cinematic_Universe")
-            }
-        ) {
-            Text("Ajouter Malo's Tomfooleryverse")
-        }
-    }*/
 }
-
-
-

@@ -66,6 +66,8 @@ import fr.isen.waltdisneycompanyuniverse.datas.collectionStatusKeys
 import fr.isen.waltdisneycompanyuniverse.datas.markedMoviesStatusOrder
 import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
 import fr.isen.waltdisneycompanyuniverse.datas.statusWantToGetRid
+import fr.isen.waltdisneycompanyuniverse.datas.statusWatched
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToWatch
 import fr.isen.waltdisneycompanyuniverse.datas.usersNode
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
@@ -91,6 +93,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             WaltDisneyCompanyUniverseTheme(darkTheme = true) {
                 var currentScreen by remember { mutableStateOf(AppScreen.Auth) }
+                var previousScreen by remember { mutableStateOf<AppScreen?>(null) }
                 var userName by remember { mutableStateOf("") }
                 var userPronounsIndex by remember { mutableIntStateOf(-1) }
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
@@ -108,7 +111,7 @@ class MainActivity : ComponentActivity() {
                 var isTrailerLoading by remember { mutableStateOf(false) }
                 var trailerLoadError by remember { mutableStateOf<String?>(null) }
                 var trailerRetryToken by remember { mutableIntStateOf(0) }
-                var userFilmStatuses by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+                var userFilmStatuses by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
                 var usersWantingToGetRid by remember { mutableStateOf<List<String>>(emptyList()) }
                 var isLoadingUsersWantingToGetRid by remember { mutableStateOf(false) }
                 var allFilmsById by remember { mutableStateOf<Map<String, Film>>(emptyMap()) }
@@ -167,13 +170,13 @@ class MainActivity : ComponentActivity() {
                         .child(collectionNode)
                         .addValueEventListener(object : ValueEventListener {
                             override fun onDataChange(snapshot: DataSnapshot) {
-                                val byFilmId = mutableMapOf<String, String>()
+                                val byFilmId = mutableMapOf<String, MutableList<String>>()
                                 collectionStatusKeys.forEach { statusKey ->
                                     snapshot.child(statusKey).children.forEach { filmSnapshot ->
                                         val filmId = filmSnapshot.key?.trim().orEmpty()
                                         val isMarked = filmSnapshot.getValue(Boolean::class.java) == true
                                         if (filmId.isNotBlank() && isMarked) {
-                                            byFilmId[filmId] = statusKey
+                                            byFilmId.getOrPut(filmId) { mutableListOf() }.add(statusKey)
                                         }
                                     }
                                 }
@@ -196,14 +199,20 @@ class MainActivity : ComponentActivity() {
                         .child(uid)
                         .child(collectionNode)
 
-                    val wasSelected = userFilmStatuses[normalizedFilmId] == statusKey
+                    val currentStatuses = userFilmStatuses[normalizedFilmId] ?: emptyList()
+                    val wasSelected = currentStatuses.contains(statusKey)
                     val updates = mutableMapOf<String, Any?>()
 
-                    collectionStatusKeys.forEach { key ->
-                        updates["$key/$normalizedFilmId"] = null
-                    }
-
-                    if (!wasSelected) {
+                    if (wasSelected) {
+                        updates["$statusKey/$normalizedFilmId"] = null
+                    } else {
+                        // Mutually exclusive: Watched vs Want to watch
+                        if (statusKey == statusWatched) {
+                            updates["$statusWantToWatch/$normalizedFilmId"] = null
+                        } else if (statusKey == statusWantToWatch) {
+                            updates["$statusWatched/$normalizedFilmId"] = null
+                        }
+                        
                         updates["$statusKey/$normalizedFilmId"] = true
                     }
 
@@ -680,7 +689,7 @@ class MainActivity : ComponentActivity() {
                 val markedSections = markedMoviesStatusOrder.mapNotNull { statusKey ->
                     val filmsForStatus = userFilmStatuses
                         .asSequence()
-                        .filter { (_, selectedStatus) -> selectedStatus == statusKey }
+                        .filter { (_, selectedStatuses) -> selectedStatuses.contains(statusKey) }
                         .mapNotNull { (filmId, _) -> allFilmsById[filmId] }
                         .sortedBy { film -> film.numero }
                         .toList()
@@ -799,7 +808,7 @@ class MainActivity : ComponentActivity() {
                                                             trailerUrl = trailerUrl,
                                                             isTrailerLoading = isTrailerLoading,
                                                             trailerError = trailerLoadError,
-                                                            currentFilmStatus = selectedFilm?.id?.let { userFilmStatuses[it] },
+                                                            currentFilmStatuses = selectedFilm?.id?.let { userFilmStatuses[it] } ?: emptyList(),
                                                             onCollectionStatusSelected = { statusKey ->
                                                                 selectedFilm?.id?.let { updateFilmCollectionStatus(it, statusKey) }
                                                             },
@@ -811,6 +820,12 @@ class MainActivity : ComponentActivity() {
                                                             onOpenTrailer = { url ->
                                                                 val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                                                 startActivity(trailerIntent)
+                                                            },
+                                                            onBack = previousScreen?.let { prev ->
+                                                                {
+                                                                    currentScreen = prev
+                                                                    previousScreen = null
+                                                                }
                                                             }
                                                         )
 
@@ -821,6 +836,7 @@ class MainActivity : ComponentActivity() {
                                                                 val filmId = film.id.trim()
                                                                 if (filmId.isNotBlank()) {
                                                                     requestedFilmUuid = filmId
+                                                                    previousScreen = AppScreen.Categories
                                                                     currentScreen = AppScreen.Home
                                                                 }
                                                             }
@@ -833,6 +849,7 @@ class MainActivity : ComponentActivity() {
                                                                 val filmId = film.id.trim()
                                                                 if (filmId.isNotBlank()) {
                                                                     requestedFilmUuid = filmId
+                                                                    previousScreen = AppScreen.MarkedMovies
                                                                     currentScreen = AppScreen.Home
                                                                 }
                                                             }
@@ -844,6 +861,7 @@ class MainActivity : ComponentActivity() {
                                                             onFilmSelected = { filmId ->
                                                                 if (filmId.isNotBlank()) {
                                                                     requestedFilmUuid = filmId
+                                                                    previousScreen = AppScreen.Search
                                                                     currentScreen = AppScreen.Home
                                                                 }
                                                             }
@@ -854,7 +872,10 @@ class MainActivity : ComponentActivity() {
 
                                                 AppBottomNavBar(
                                                     currentScreen = screen,
-                                                    onHomeClick = { currentScreen = AppScreen.Home },
+                                                    onHomeClick = { 
+                                                        previousScreen = null
+                                                        currentScreen = AppScreen.Home 
+                                                    },
                                                     onCategoriesClick = { currentScreen = AppScreen.Categories },
                                                     onFavoritesClick = { currentScreen = AppScreen.MarkedMovies },
                                                     onSearchClick = { currentScreen = AppScreen.Search }

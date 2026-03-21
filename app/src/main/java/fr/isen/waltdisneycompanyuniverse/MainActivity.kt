@@ -57,8 +57,10 @@ import fr.isen.waltdisneycompanyuniverse.Screens.PersistentTopHeader
 import fr.isen.waltdisneycompanyuniverse.Screens.Prologue
 import fr.isen.waltdisneycompanyuniverse.Screens.ProfilePictureOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.PronounsOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.SearchScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.saveUserToFirebase
 import fr.isen.waltdisneycompanyuniverse.datas.Film
+import fr.isen.waltdisneycompanyuniverse.datas.SearchIndexEntry
 import fr.isen.waltdisneycompanyuniverse.datas.collectionNode
 import fr.isen.waltdisneycompanyuniverse.datas.collectionStatusKeys
 import fr.isen.waltdisneycompanyuniverse.datas.markedMoviesStatusOrder
@@ -79,7 +81,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 enum class AppScreen {
-    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home, Categories, MarkedMovies
+    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home, Categories, MarkedMovies, Search
 }
 
 class MainActivity : ComponentActivity() {
@@ -110,6 +112,7 @@ class MainActivity : ComponentActivity() {
                 var usersWantingToGetRid by remember { mutableStateOf<List<String>>(emptyList()) }
                 var isLoadingUsersWantingToGetRid by remember { mutableStateOf(false) }
                 var allFilmsById by remember { mutableStateOf<Map<String, Film>>(emptyMap()) }
+                var searchIndexEntries by remember { mutableStateOf<List<SearchIndexEntry>>(emptyList()) }
 
                 val profilePictures = listOf(
                     R.drawable.pfp_mickey,
@@ -286,12 +289,58 @@ class MainActivity : ComponentActivity() {
 
                             override fun onDataChange(snapshot: DataSnapshot) {
                                 val collected = mutableMapOf<String, Film>()
-                                collectFilmsRecursively(snapshot, collected)
+                                val searchEntries = mutableMapOf<String, SearchIndexEntry>()
+
+                                fun putFilmEntry(
+                                    film: Film,
+                                    category: String,
+                                    franchise: String,
+                                    saga: String
+                                ) {
+                                    if (film.id.isBlank()) return
+                                    collected[film.id] = film
+                                    searchEntries[film.id] = SearchIndexEntry(
+                                        filmId = film.id,
+                                        filmTitle = film.titre,
+                                        year = film.annee,
+                                        genre = film.genre,
+                                        franchise = franchise,
+                                        saga = saga,
+                                        category = category
+                                    )
+                                }
+
+                                snapshot.children.forEach { categorySnapshot ->
+                                    val categoryName = categorySnapshot.child("categorie").getValue(String::class.java).orEmpty()
+                                    categorySnapshot.child("franchises").children.forEach { franchiseSnapshot ->
+                                        val franchiseName = franchiseSnapshot.child("nom").getValue(String::class.java).orEmpty()
+
+                                        franchiseSnapshot.child("films").children.forEach { filmSnapshot ->
+                                            val film = toFilm(filmSnapshot)
+                                            putFilmEntry(film, categoryName, franchiseName, "")
+                                        }
+
+                                        franchiseSnapshot.child("sous_sagas").children.forEach { sagaSnapshot ->
+                                            val sagaName = sagaSnapshot.child("nom").getValue(String::class.java).orEmpty()
+                                            sagaSnapshot.child("films").children.forEach { filmSnapshot ->
+                                                val film = toFilm(filmSnapshot)
+                                                putFilmEntry(film, categoryName, franchiseName, sagaName)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (collected.isEmpty()) {
+                                    collectFilmsRecursively(snapshot, collected)
+                                }
+
                                 allFilmsById = collected
+                                searchIndexEntries = searchEntries.values.sortedBy { it.filmTitle }
                             }
 
                             override fun onCancelled(error: DatabaseError) {
                                 allFilmsById = emptyMap()
+                                searchIndexEntries = emptyList()
                             }
                         })
                 }
@@ -716,7 +765,8 @@ class MainActivity : ComponentActivity() {
                                             )
                                             AppScreen.Home,
                                             AppScreen.Categories,
-                                            AppScreen.MarkedMovies -> Column(modifier = Modifier.fillMaxSize()) {
+                                            AppScreen.MarkedMovies,
+                                            AppScreen.Search -> Column(modifier = Modifier.fillMaxSize()) {
                                                 val currentPfpRes = if (selectedPfpIndex != -1) {
                                                     profilePictures[selectedPfpIndex]
                                                 } else {
@@ -787,6 +837,17 @@ class MainActivity : ComponentActivity() {
                                                                 }
                                                             }
                                                         )
+
+                                                        AppScreen.Search -> SearchScreen(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            entries = searchIndexEntries,
+                                                            onFilmSelected = { filmId ->
+                                                                if (filmId.isNotBlank()) {
+                                                                    requestedFilmUuid = filmId
+                                                                    currentScreen = AppScreen.Home
+                                                                }
+                                                            }
+                                                        )
                                                         else -> Unit
                                                     }
                                                 }
@@ -795,7 +856,8 @@ class MainActivity : ComponentActivity() {
                                                     currentScreen = screen,
                                                     onHomeClick = { currentScreen = AppScreen.Home },
                                                     onCategoriesClick = { currentScreen = AppScreen.Categories },
-                                                    onFavoritesClick = { currentScreen = AppScreen.MarkedMovies }
+                                                    onFavoritesClick = { currentScreen = AppScreen.MarkedMovies },
+                                                    onSearchClick = { currentScreen = AppScreen.Search }
                                                 )
                                             }
                                         }

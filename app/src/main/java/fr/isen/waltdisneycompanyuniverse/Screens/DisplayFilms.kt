@@ -39,6 +39,7 @@ fun DisplayFilms(
                 UnifiedListItemCard(
                     title = "${film.numero}. ${film.titre}",
                     subtitle = "${film.annee} - ${film.genre}",
+                    posterTitle = film.titre,
                     onClick = {
                         onFilmSelected(film)
                     }

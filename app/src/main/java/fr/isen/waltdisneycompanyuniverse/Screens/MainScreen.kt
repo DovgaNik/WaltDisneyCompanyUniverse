@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import fr.isen.waltdisneycompanyuniverse.AppScreen
 import fr.isen.waltdisneycompanyuniverse.R
 import fr.isen.waltdisneycompanyuniverse.datas.Film
 
@@ -269,47 +270,69 @@ fun MainScreen(
                     }
                 }
 
-                // Extra space for bottom nav
-                Spacer(modifier = Modifier.height(100.dp))
+                Spacer(modifier = Modifier.height(24.dp))
             }
+        }
+    }
+}
 
-            // Fixed Bottom Navigation Bar
+@Composable
+fun AppBottomNavBar(
+    currentScreen: AppScreen,
+    onHomeClick: () -> Unit,
+    onCategoriesClick: () -> Unit,
+    onFavoritesClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            color = Color.White,
+            shape = RoundedCornerShape(30.dp),
+            modifier = Modifier
+                .height(60.dp)
+                .weight(0.7f)
+        ) {
             Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    color = Color.White,
-                    shape = RoundedCornerShape(30.dp),
-                    modifier = Modifier.height(60.dp).weight(0.7f)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {}) { Icon(Icons.Default.Home, contentDescription = "Home", tint = Color.Black) }
-                        IconButton(onClick = {}) { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "List", tint = Color.Black) }
-                        IconButton(onClick = {}) { Icon(Icons.Default.FavoriteBorder, contentDescription = "Favorites", tint = Color.Black) }
-                    }
+                IconButton(onClick = onHomeClick) {
+                    Icon(
+                        Icons.Default.Home,
+                        contentDescription = "Home",
+                        tint = if (currentScreen == AppScreen.Home) Color(0xFF1A237E) else Color.Black
+                    )
                 }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-
-                FloatingActionButton(
-                    onClick = {},
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                    shape = CircleShape,
-                    modifier = Modifier.size(60.dp)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
+                IconButton(onClick = onCategoriesClick) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.List,
+                        contentDescription = "List",
+                        tint = if (currentScreen == AppScreen.Categories) Color(0xFF1A237E) else Color.Black
+                    )
+                }
+                IconButton(onClick = onFavoritesClick) {
+                    Icon(Icons.Default.FavoriteBorder, contentDescription = "Favorites", tint = Color.Black)
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        FloatingActionButton(
+            onClick = onSearchClick,
+            containerColor = Color.White,
+            contentColor = Color.Black,
+            shape = CircleShape,
+            modifier = Modifier.size(60.dp)
+        ) {
+            Icon(Icons.Default.Search, contentDescription = "Search")
         }
     }
 }

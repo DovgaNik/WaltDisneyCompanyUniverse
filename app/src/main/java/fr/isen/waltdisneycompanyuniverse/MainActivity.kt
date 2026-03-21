@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -48,8 +49,10 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import fr.isen.waltdisneycompanyuniverse.Screens.AuthScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.AppBottomNavBar
 import fr.isen.waltdisneycompanyuniverse.Screens.MainScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.NameOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.Prologue
 import fr.isen.waltdisneycompanyuniverse.Screens.ProfilePictureOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.PronounsOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.saveUserToFirebase
@@ -69,7 +72,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 enum class AppScreen {
-    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home
+    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home, Categories
 }
 
 class MainActivity : ComponentActivity() {
@@ -491,31 +494,51 @@ class MainActivity : ComponentActivity() {
                                                 isFirstTime = isFirstTime,
                                                 onTimeout = { currentScreen = AppScreen.Home }
                                             )
-                                            AppScreen.Home -> MainScreen(
-                                                userName = userName,
-                                                pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
-                                                film = selectedFilm,
-                                                filmUuid = requestedFilmUuid,
-                                                isFilmLoading = isFilmLoading,
-                                                filmError = filmLoadError,
-                                                posterUrl = posterUrl,
-                                                isPosterLoading = isPosterLoading,
-                                                posterError = posterLoadError,
-                                                trailerUrl = trailerUrl,
-                                                isTrailerLoading = isTrailerLoading,
-                                                trailerError = trailerLoadError,
-                                                onRetryFilmLoad = { fetchFilmByUuid(requestedFilmUuid) },
-                                                onRetryPosterLoad = { posterRetryToken++ },
-                                                onRetryTrailerLoad = { trailerRetryToken++ },
-                                                onOpenTrailer = { url ->
-                                                    val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                                    startActivity(trailerIntent)
-                                                },
-                                                onProfileClick = {
-                                                    val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
-                                                    startActivity(intent)
+                                            AppScreen.Home,
+                                            AppScreen.Categories -> Column(modifier = Modifier.fillMaxSize()) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .fillMaxWidth()
+                                                ) {
+                                                    when (screen) {
+                                                        AppScreen.Home -> MainScreen(
+                                                            userName = userName,
+                                                            pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
+                                                            film = selectedFilm,
+                                                            filmUuid = requestedFilmUuid,
+                                                            isFilmLoading = isFilmLoading,
+                                                            filmError = filmLoadError,
+                                                            posterUrl = posterUrl,
+                                                            isPosterLoading = isPosterLoading,
+                                                            posterError = posterLoadError,
+                                                            trailerUrl = trailerUrl,
+                                                            isTrailerLoading = isTrailerLoading,
+                                                            trailerError = trailerLoadError,
+                                                            onRetryFilmLoad = { fetchFilmByUuid(requestedFilmUuid) },
+                                                            onRetryPosterLoad = { posterRetryToken++ },
+                                                            onRetryTrailerLoad = { trailerRetryToken++ },
+                                                            onOpenTrailer = { url ->
+                                                                val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                                startActivity(trailerIntent)
+                                                            },
+                                                            onProfileClick = {
+                                                                val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
+                                                                startActivity(intent)
+                                                            }
+                                                        )
+
+                                                        AppScreen.Categories -> Prologue(modifier = Modifier.fillMaxSize())
+                                                        else -> Unit
+                                                    }
                                                 }
-                                            )
+
+                                                AppBottomNavBar(
+                                                    currentScreen = screen,
+                                                    onHomeClick = { currentScreen = AppScreen.Home },
+                                                    onCategoriesClick = { currentScreen = AppScreen.Categories }
+                                                )
+                                            }
                                         }
                                     }
                                 }

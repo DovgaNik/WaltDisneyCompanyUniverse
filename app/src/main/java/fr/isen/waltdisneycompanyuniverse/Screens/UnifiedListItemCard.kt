@@ -107,6 +107,8 @@ fun UnifiedListItemCard(
         }
     }
 
+    val textColor = Color(0xFF151515)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -137,14 +139,14 @@ fun UnifiedListItemCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF151515)
+                    color = textColor
                 )
                 if (!subtitle.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF151515)
+                        color = textColor
                     )
                 }
                 if (!statusText.isNullOrBlank()) {
@@ -152,7 +154,7 @@ fun UnifiedListItemCard(
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF151515)
+                        color = textColor
                     )
                 }
             }

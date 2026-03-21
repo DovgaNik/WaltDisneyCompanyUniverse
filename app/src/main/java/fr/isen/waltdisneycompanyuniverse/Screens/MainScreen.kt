@@ -33,7 +33,6 @@ import coil.compose.AsyncImage
 import fr.isen.waltdisneycompanyuniverse.AppScreen
 import fr.isen.waltdisneycompanyuniverse.R
 import fr.isen.waltdisneycompanyuniverse.datas.Film
-import fr.isen.waltdisneycompanyuniverse.datas.statusLabel
 import fr.isen.waltdisneycompanyuniverse.datas.statusOwnDvdBluray
 import fr.isen.waltdisneycompanyuniverse.datas.statusWantToGetRid
 import fr.isen.waltdisneycompanyuniverse.datas.statusWantToWatch
@@ -111,13 +110,6 @@ fun MainScreen(
                 }
 
                 if (posterError != null && !isFilmLoading) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Couldn't load the poster right now.",
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodySmall
-                    )
                     TextButton(onClick = onRetryPosterLoad) {
                         Text(text = "Retry poster")
                     }
@@ -205,22 +197,16 @@ fun MainScreen(
                     )
                 }
 
-                if (currentFilmStatus != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Your status: ${statusLabel(currentFilmStatus)}",
-                        color = Color.White,
-                        fontSize = 13.sp
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = { trailerUrl?.let(onOpenTrailer) },
-                    enabled = trailerUrl != null && !isTrailerLoading
-                ) {
-                    Text(if (isTrailerLoading) "Loading trailer..." else "Watch trailer")
+                if (trailerError == null) {
+                    Button(
+                        onClick = { trailerUrl?.let(onOpenTrailer) },
+                        enabled = trailerUrl != null && !isTrailerLoading
+                    ) {
+                        Text(if (isTrailerLoading) "Loading trailer..." else "Watch trailer")
+                    }
                 }
 
                 if (trailerError != null && !isFilmLoading) {
@@ -416,7 +402,7 @@ fun ActionItem(
     isSelected: Boolean = false,
     onClick: () -> Unit = {}
 ) {
-    val itemColor = if (isSelected) Color(0xFFB4C5E4) else Color.White
+    val itemColor = if (isSelected) Color(0xFF656565) else Color.White
 
     Row(
         modifier = Modifier.clickable(onClick = onClick),

@@ -21,6 +21,7 @@ Function to set up the connection to the database.
 @Composable
 fun Prologue(
     modifier: Modifier = Modifier,
+    filmStatuses: Map<String, String> = emptyMap(),
     onFilmSelected: (Film) -> Unit = {}
 ) {
     Log.d("DEBUG", "Prologue activé !")
@@ -75,6 +76,7 @@ fun Prologue(
         DisplayFilms(
             modifier,
             selectedFilms,
+            filmStatuses = filmStatuses,
             onBack = {  // Si l'utilisateur décide de retourner en arrière, nous n'avons plus à lui afficher les films.
                 selectedFilms = emptyList<Film>()
             },

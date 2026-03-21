@@ -1,6 +1,7 @@
 package fr.isen.waltdisneycompanyuniverse.Screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -32,6 +33,11 @@ import coil.compose.AsyncImage
 import fr.isen.waltdisneycompanyuniverse.AppScreen
 import fr.isen.waltdisneycompanyuniverse.R
 import fr.isen.waltdisneycompanyuniverse.datas.Film
+import fr.isen.waltdisneycompanyuniverse.datas.statusLabel
+import fr.isen.waltdisneycompanyuniverse.datas.statusOwnDvdBluray
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToGetRid
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToWatch
+import fr.isen.waltdisneycompanyuniverse.datas.statusWatched
 
 @Composable
 fun MainScreen(
@@ -45,6 +51,10 @@ fun MainScreen(
     trailerUrl: String?,
     isTrailerLoading: Boolean,
     trailerError: String?,
+    currentFilmStatus: String? = null,
+    onCollectionStatusSelected: (String) -> Unit = {},
+    usersWantingToGetRid: List<String> = emptyList(),
+    isLoadingUsersWantingToGetRid: Boolean = false,
     onRetryFilmLoad: () -> Unit = {},
     onRetryPosterLoad: () -> Unit = {},
     onRetryTrailerLoad: () -> Unit = {},
@@ -169,9 +179,39 @@ fun MainScreen(
                     modifier = Modifier.fillMaxWidth(0.6f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ActionItem(icon = Icons.Default.Add, text = "Want to watch")
-                    ActionItem(icon = Icons.Default.RemoveRedEye, text = "Watched")
-                    ActionItem(icon = Icons.Default.RadioButtonChecked, text = "Have a DVD / BlueRay")
+                    ActionItem(
+                        icon = Icons.Default.Add,
+                        text = "Want to watch",
+                        isSelected = currentFilmStatus == statusWantToWatch,
+                        onClick = { onCollectionStatusSelected(statusWantToWatch) }
+                    )
+                    ActionItem(
+                        icon = Icons.Default.RemoveRedEye,
+                        text = "Watched",
+                        isSelected = currentFilmStatus == statusWatched,
+                        onClick = { onCollectionStatusSelected(statusWatched) }
+                    )
+                    ActionItem(
+                        icon = Icons.Default.RadioButtonChecked,
+                        text = "Have a DVD / BlueRay",
+                        isSelected = currentFilmStatus == statusOwnDvdBluray,
+                        onClick = { onCollectionStatusSelected(statusOwnDvdBluray) }
+                    )
+                    ActionItem(
+                        icon = Icons.Default.FavoriteBorder,
+                        text = "Want to get rid",
+                        isSelected = currentFilmStatus == statusWantToGetRid,
+                        onClick = { onCollectionStatusSelected(statusWantToGetRid) }
+                    )
+                }
+
+                if (currentFilmStatus != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Your status: ${statusLabel(currentFilmStatus)}",
+                        color = Color.White,
+                        fontSize = 13.sp
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -198,7 +238,6 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Marie Card
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -206,24 +245,31 @@ fun MainScreen(
                     color = Color.White.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.pfp_cats),
-                            contentDescription = "Marie",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Marie wants to get rid of their copy",
+                            text = "Users wanting to get rid of this film",
                             color = Color.White,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        when {
+                            isLoadingUsersWantingToGetRid -> Text(
+                                text = "Loading users...",
+                                color = Color.White,
+                                fontSize = 13.sp
+                            )
+                            usersWantingToGetRid.isEmpty() -> Text(
+                                text = "No users currently marked this status.",
+                                color = Color.White,
+                                fontSize = 13.sp
+                            )
+                            else -> Text(
+                                text = usersWantingToGetRid.joinToString(separator = "\n") { "- $it" },
+                                color = Color.White,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
 
@@ -364,20 +410,28 @@ fun Tag(text: String) {
 }
 
 @Composable
-fun ActionItem(icon: ImageVector, text: String) {
+fun ActionItem(
+    icon: ImageVector,
+    text: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    val itemColor = if (isSelected) Color(0xFFB4C5E4) else Color.White
+
     Row(
+        modifier = Modifier.clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = text,
-            tint = Color.White,
+            tint = itemColor,
             modifier = Modifier.size(20.dp)
         )
         Text(
             text = text,
-            color = Color.White,
+            color = itemColor,
             fontSize = 13.sp
         )
     }

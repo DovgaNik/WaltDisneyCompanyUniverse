@@ -81,6 +81,7 @@ private suspend fun fetchPosterUrlFromTmdb(title: String): String? {
 fun UnifiedListItemCard(
     title: String,
     subtitle: String? = null,
+    statusText: String? = null,
     imageUrl: String? = null,
     posterTitle: String? = null,
     onClick: () -> Unit
@@ -144,6 +145,14 @@ fun UnifiedListItemCard(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF151515)
+                    )
+                }
+                if (!statusText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF656565)
                     )
                 }
             }

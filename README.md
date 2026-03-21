@@ -17,9 +17,17 @@ The initial design has been developed by @anne-amelie in Figma to allow for easi
 What did we do?
 ---
 
-1. Implemented authentication using Firebase Authentication. [Related issue.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/issues/1) [Related Pull Request.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/pull/3)
-2. Implemented basic display of the categories, sagas, and movies [Related issue.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/issues/2)
-3. Developed the UI in Figma
+1. Implemented authentication using Firebase Authentication (login/register). [Related issue.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/issues/1) [Related Pull Request.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/pull/3)
+2. Implemented onboarding (name, pronouns, profile picture) and saved user profile data in Firebase.
+3. Implemented persistent login so users stay connected between app launches.
+4. Implemented browsing of categories, franchises, sagas, and films. [Related issue.](https://github.com/DovgaNik/WaltDisneyCompanyUniverse/issues/2)
+5. Implemented a persistent top header and bottom navbar across app screens.
+6. Implemented movie details page with poster and trailer loading.
+7. Implemented movie statuses (Want to watch / Watched / Own on DVD-Blu-ray / Want to get rid) stored per user in Firebase.
+8. Implemented a marked movies page showing all movies grouped by user status.
+9. Implemented profile editing (username, email, password, profile picture).
+10. Implemented dynamic watched movies counter in profile page.
+11. Designed and iterated on the UI in Figma and in-app refinements.
 
 Credits:
 ---

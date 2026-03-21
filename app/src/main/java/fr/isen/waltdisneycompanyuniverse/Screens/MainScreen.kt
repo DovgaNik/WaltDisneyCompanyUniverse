@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -243,7 +244,7 @@ fun PersistentTopHeader(
             .statusBarsPadding()
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.Start
     ) {
         Image(
             painter = painterResource(id = R.drawable.disney_logo_white),
@@ -251,27 +252,37 @@ fun PersistentTopHeader(
             modifier = Modifier.height(40.dp)
         )
 
-        Text(
-            text = userName,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        )
+        Spacer(modifier = Modifier.weight(1f))
 
-        Surface(
-            onClick = onProfileClick,
-            shape = RoundedCornerShape(8.dp),
-            color = Color.Transparent
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Image(
-                painter = painterResource(id = pfpResId),
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
+            Text(
+                text = userName,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             )
+
+            Surface(
+                onClick = onProfileClick,
+                shape = RoundedCornerShape(8.dp),
+                color = Color.Transparent
+            ) {
+                Image(
+                    painter = painterResource(id = pfpResId),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
     }
 }

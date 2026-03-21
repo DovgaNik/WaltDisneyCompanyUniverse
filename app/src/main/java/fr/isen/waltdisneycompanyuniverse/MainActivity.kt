@@ -369,7 +369,43 @@ class MainActivity : ComponentActivity() {
                     })
                 }
 
+                fun fetchRandomFilmUuid(onResult: (String?) -> Unit) {
+                    val categoriesRef = FirebaseDatabase.getInstance().reference.child("categories")
+                    categoriesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                        fun collectFilmIds(snapshot: DataSnapshot, collected: MutableList<String>) {
+                            val hasFilmShape = snapshot.hasChild("titre") && snapshot.hasChild("annee") && snapshot.hasChild("genre")
+                            if (hasFilmShape) {
+                                val rawId = snapshot.child("id").getValue(String::class.java)?.trim().orEmpty()
+                                val fallbackId = snapshot.key?.trim().orEmpty()
+                                val resolvedId = if (rawId.isNotBlank()) rawId else fallbackId
+                                if (resolvedId.isNotBlank()) {
+                                    collected.add(resolvedId)
+                                }
+                            }
+                            snapshot.children.forEach { child ->
+                                collectFilmIds(child, collected)
+                            }
+                        }
+
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            val ids = mutableListOf<String>()
+                            collectFilmIds(snapshot, ids)
+                            onResult(ids.randomOrNull())
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            onResult(null)
+                        }
+                    })
+                }
+
                 LaunchedEffect(Unit) {
+                    fetchRandomFilmUuid { randomUuid ->
+                        if (!randomUuid.isNullOrBlank()) {
+                            requestedFilmUuid = randomUuid
+                        }
+                    }
+
                     val existingUser = FirebaseAuth.getInstance().currentUser
                     if (existingUser == null) {
                         isLoading = false
@@ -554,7 +590,16 @@ class MainActivity : ComponentActivity() {
                                                             }
                                                         )
 
-                                                        AppScreen.Categories -> Prologue(modifier = Modifier.fillMaxSize())
+                                                        AppScreen.Categories -> Prologue(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            onFilmSelected = { film ->
+                                                                val filmId = film.id.trim()
+                                                                if (filmId.isNotBlank()) {
+                                                                    requestedFilmUuid = filmId
+                                                                    currentScreen = AppScreen.Home
+                                                                }
+                                                            }
+                                                        )
                                                         else -> Unit
                                                     }
                                                 }

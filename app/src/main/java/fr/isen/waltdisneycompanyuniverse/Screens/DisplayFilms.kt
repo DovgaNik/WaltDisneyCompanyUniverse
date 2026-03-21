@@ -23,6 +23,7 @@ fun DisplayFilms(
     modifier: Modifier,
     films: List<Film>,
     onBack: () -> Unit,
+    onFilmSelected: (Film) -> Unit,
 ){
     Column(
         modifier = modifier
@@ -39,7 +40,7 @@ fun DisplayFilms(
                     title = "${film.numero}. ${film.titre}",
                     subtitle = "${film.annee} - ${film.genre}",
                     onClick = {
-                        // TODO : Mettre un renvois vers la fonction d'affichage des détails de Nikita.
+                        onFilmSelected(film)
                     }
                 )
             }

@@ -19,7 +19,10 @@ import fr.isen.waltdisneycompanyuniverse.datas.*
 Function to set up the connection to the database.
  */
 @Composable
-fun Prologue(modifier: Modifier = Modifier) {
+fun Prologue(
+    modifier: Modifier = Modifier,
+    onFilmSelected: (Film) -> Unit = {}
+) {
     Log.d("DEBUG", "Prologue activé !")
 
     val ref = FirebaseDatabase
@@ -74,7 +77,8 @@ fun Prologue(modifier: Modifier = Modifier) {
             selectedFilms,
             onBack = {  // Si l'utilisateur décide de retourner en arrière, nous n'avons plus à lui afficher les films.
                 selectedFilms = emptyList<Film>()
-            }
+            },
+            onFilmSelected = onFilmSelected
         )
     }
     // Si nous avons sélectionné une saga.

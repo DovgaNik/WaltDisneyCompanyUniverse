@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import fr.isen.waltdisneycompanyuniverse.datas.collectionNode
+import fr.isen.waltdisneycompanyuniverse.datas.statusWatched
+import fr.isen.waltdisneycompanyuniverse.datas.usersNode
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
@@ -48,6 +51,7 @@ class EditProfileActivity : ComponentActivity() {
                 val context = LocalContext.current
                 var userName by remember { mutableStateOf("Username") }
                 var selectedPfpIndex by remember { mutableIntStateOf(0) }
+                var moviesWatchedCount by remember { mutableIntStateOf(0) }
                 val user = FirebaseAuth.getInstance().currentUser
                 var email by remember { mutableStateOf(user?.email ?: "name@gmail.com") }
 
@@ -74,12 +78,27 @@ class EditProfileActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     val uid = FirebaseAuth.getInstance().currentUser?.uid
                     if (uid != null) {
-                        FirebaseDatabase.getInstance().reference.child("users").child(uid).child("persona")
+                        FirebaseDatabase.getInstance().reference.child(usersNode).child(uid).child("persona")
                             .get().addOnSuccessListener { snapshot ->
                                 if (snapshot.exists()) {
                                     userName = snapshot.child("username").getValue(String::class.java) ?: "Username"
                                     selectedPfpIndex = snapshot.child("pfp").getValue(Int::class.java) ?: 0
                                 }
+                            }
+
+                        FirebaseDatabase.getInstance().reference
+                            .child(usersNode)
+                            .child(uid)
+                            .child(collectionNode)
+                            .child(statusWatched)
+                            .get()
+                            .addOnSuccessListener { snapshot ->
+                                moviesWatchedCount = snapshot.children.count {
+                                    it.getValue(Boolean::class.java) == true
+                                }
+                            }
+                            .addOnFailureListener {
+                                moviesWatchedCount = 0
                             }
                     }
                 }
@@ -167,7 +186,7 @@ class EditProfileActivity : ComponentActivity() {
                                             )
                                         )
                                         Text(
-                                            text = "Movies watched: 2003",
+                                            text = "Movies watched: $moviesWatchedCount",
                                             style = MaterialTheme.typography.bodyMedium.copy(
                                                 color = Color.White.copy(alpha = 0.8f)
                                             )

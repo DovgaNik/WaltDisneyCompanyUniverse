@@ -1,16 +1,16 @@
 package fr.isen.waltdisneycompanyuniverse.Screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Card
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import fr.isen.waltdisneycompanyuniverse.datas.Film
+import fr.isen.waltdisneycompanyuniverse.datas.statusLabel
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.ui.unit.dp
 
 
 /*
@@ -22,26 +22,29 @@ It should show :
 fun DisplayFilms(
     modifier: Modifier,
     films: List<Film>,
+    filmStatuses: Map<String, String> = emptyMap(),
     onBack: () -> Unit,
+    onFilmSelected: (Film) -> Unit,
 ){
+    BackHandler(onBack = onBack)
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .statusBarsPadding()
+            .padding(horizontal = 16.dp)
     ) {
-
-        Button(onClick = { onBack() }) {
-            Text("Retour")
-        }
-        LazyColumn{
+        LazyColumn {
             items(films) { film ->
-                Card(
+                val statusKey = filmStatuses[film.id]
+                UnifiedListItemCard(
+                    title = "${film.numero}. ${film.titre}",
+                    subtitle = "${film.annee} - ${film.genre}",
+                    statusText = statusKey?.let { statusLabel(it) },
+                    posterTitle = film.titre,
                     onClick = {
-                        // TODO : Mettre un renvois vers la fonction d'affichage des détails de Nikita.
+                        onFilmSelected(film)
                     }
-                ) {
-                    Text("Work in progress.")
-                }
+                )
             }
         }
     }

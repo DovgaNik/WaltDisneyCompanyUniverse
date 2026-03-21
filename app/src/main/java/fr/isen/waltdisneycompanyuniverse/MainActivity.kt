@@ -10,10 +10,28 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,24 +43,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import fr.isen.waltdisneycompanyuniverse.Screens.Prologue
-import fr.isen.waltdisneycompanyuniverse.ui.AuthScreen
-import fr.isen.waltdisneycompanyuniverse.ui.NameOnboardingScreen
-import fr.isen.waltdisneycompanyuniverse.ui.ProfilePictureOnboardingScreen
-import fr.isen.waltdisneycompanyuniverse.ui.PronounsOnboardingScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import fr.isen.waltdisneycompanyuniverse.datas.Film
-import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
 import fr.isen.waltdisneycompanyuniverse.Screens.AuthScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.AppBottomNavBar
 import fr.isen.waltdisneycompanyuniverse.Screens.MainScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.MarkedMoviesScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.NameOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.PersistentTopHeader
+import fr.isen.waltdisneycompanyuniverse.Screens.Prologue
 import fr.isen.waltdisneycompanyuniverse.Screens.ProfilePictureOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.PronounsOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.SearchScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.saveUserToFirebase
+import fr.isen.waltdisneycompanyuniverse.datas.Film
+import fr.isen.waltdisneycompanyuniverse.datas.SearchIndexEntry
+import fr.isen.waltdisneycompanyuniverse.datas.collectionNode
+import fr.isen.waltdisneycompanyuniverse.datas.collectionStatusKeys
+import fr.isen.waltdisneycompanyuniverse.datas.markedMoviesStatusOrder
+import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToGetRid
+import fr.isen.waltdisneycompanyuniverse.datas.usersNode
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.DisneyDeepBlue
 import fr.isen.waltdisneycompanyuniverse.ui.theme.WaltDisneyCompanyUniverseTheme
@@ -57,7 +81,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 enum class AppScreen {
-    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home
+    Auth, OnboardingName, OnboardingPronouns, OnboardingProfilePicture, Welcome, Home, Categories, MarkedMovies, Search
 }
 
 class MainActivity : ComponentActivity() {
@@ -71,7 +95,7 @@ class MainActivity : ComponentActivity() {
                 var userPronounsIndex by remember { mutableIntStateOf(-1) }
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
                 var isFirstTime by remember { mutableStateOf(false) }
-                var isLoading by remember { mutableStateOf(false) }
+                var isLoading by remember { mutableStateOf(true) }
                 var requestedFilmUuid by remember { mutableStateOf("732725b2-beb5-4e04-8909-81e5ed12dbdc") }
                 var selectedFilm by remember { mutableStateOf<Film?>(null) }
                 var isFilmLoading by remember { mutableStateOf(false) }
@@ -84,6 +108,11 @@ class MainActivity : ComponentActivity() {
                 var isTrailerLoading by remember { mutableStateOf(false) }
                 var trailerLoadError by remember { mutableStateOf<String?>(null) }
                 var trailerRetryToken by remember { mutableIntStateOf(0) }
+                var userFilmStatuses by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+                var usersWantingToGetRid by remember { mutableStateOf<List<String>>(emptyList()) }
+                var isLoadingUsersWantingToGetRid by remember { mutableStateOf(false) }
+                var allFilmsById by remember { mutableStateOf<Map<String, Film>>(emptyMap()) }
+                var searchIndexEntries by remember { mutableStateOf<List<SearchIndexEntry>>(emptyList()) }
 
                 val profilePictures = listOf(
                     R.drawable.pfp_mickey,
@@ -101,7 +130,13 @@ class MainActivity : ComponentActivity() {
                 )
 
                 fun startListeningToUserData() {
-                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid
+                    if (uid == null) {
+                        isLoading = false
+                        currentScreen = AppScreen.Auth
+                        userFilmStatuses = emptyMap()
+                        return
+                    }
                     isLoading = true
                     val userRef = FirebaseDatabase.getInstance().reference.child("users").child(uid).child("persona")
                     
@@ -114,7 +149,7 @@ class MainActivity : ComponentActivity() {
                             }
                             if (isLoading) {
                                 isLoading = false
-                                currentScreen = AppScreen.Welcome
+                                currentScreen = if (snapshot.exists()) AppScreen.Welcome else AppScreen.OnboardingName
                             }
                         }
 
@@ -125,6 +160,189 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     })
+
+                    FirebaseDatabase.getInstance().reference
+                        .child(usersNode)
+                        .child(uid)
+                        .child(collectionNode)
+                        .addValueEventListener(object : ValueEventListener {
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                val byFilmId = mutableMapOf<String, String>()
+                                collectionStatusKeys.forEach { statusKey ->
+                                    snapshot.child(statusKey).children.forEach { filmSnapshot ->
+                                        val filmId = filmSnapshot.key?.trim().orEmpty()
+                                        val isMarked = filmSnapshot.getValue(Boolean::class.java) == true
+                                        if (filmId.isNotBlank() && isMarked) {
+                                            byFilmId[filmId] = statusKey
+                                        }
+                                    }
+                                }
+                                userFilmStatuses = byFilmId
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                userFilmStatuses = emptyMap()
+                            }
+                        })
+                }
+
+                fun updateFilmCollectionStatus(filmId: String, statusKey: String) {
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+                    val normalizedFilmId = filmId.trim()
+                    if (normalizedFilmId.isBlank()) return
+
+                    val userCollectionRef = FirebaseDatabase.getInstance().reference
+                        .child(usersNode)
+                        .child(uid)
+                        .child(collectionNode)
+
+                    val wasSelected = userFilmStatuses[normalizedFilmId] == statusKey
+                    val updates = mutableMapOf<String, Any?>()
+
+                    collectionStatusKeys.forEach { key ->
+                        updates["$key/$normalizedFilmId"] = null
+                    }
+
+                    if (!wasSelected) {
+                        updates["$statusKey/$normalizedFilmId"] = true
+                    }
+
+                    userCollectionRef.updateChildren(updates)
+                }
+
+                fun fetchUsersWantingToGetRid(filmId: String?) {
+                    val normalizedFilmId = filmId?.trim().orEmpty()
+                    if (normalizedFilmId.isBlank()) {
+                        usersWantingToGetRid = emptyList()
+                        isLoadingUsersWantingToGetRid = false
+                        return
+                    }
+
+                    val currentUid = FirebaseAuth.getInstance().currentUser?.uid
+                    isLoadingUsersWantingToGetRid = true
+                    FirebaseDatabase.getInstance().reference
+                        .child(usersNode)
+                        .addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                val names = mutableListOf<String>()
+                                snapshot.children.forEach { userSnapshot ->
+                                    if (userSnapshot.key == currentUid) return@forEach
+                                    val hasStatus = userSnapshot
+                                        .child(collectionNode)
+                                        .child(statusWantToGetRid)
+                                        .child(normalizedFilmId)
+                                        .getValue(Boolean::class.java) == true
+                                    if (!hasStatus) return@forEach
+
+                                    val username = userSnapshot
+                                        .child("persona")
+                                        .child("username")
+                                        .getValue(String::class.java)
+                                        ?.trim()
+                                        .orEmpty()
+                                    if (username.isNotBlank()) {
+                                        names.add(username)
+                                    }
+                                }
+                                usersWantingToGetRid = names.distinct().sorted()
+                                isLoadingUsersWantingToGetRid = false
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                usersWantingToGetRid = emptyList()
+                                isLoadingUsersWantingToGetRid = false
+                            }
+                        })
+                }
+
+                fun startListeningToFilmCatalog() {
+                    FirebaseDatabase.getInstance().reference
+                        .child("categories")
+                        .addValueEventListener(object : ValueEventListener {
+                            fun isFilmNode(snapshot: DataSnapshot): Boolean {
+                                return snapshot.hasChild("titre") && snapshot.hasChild("annee") && snapshot.hasChild("genre")
+                            }
+
+                            fun toFilm(snapshot: DataSnapshot): Film {
+                                val rawId = snapshot.child("id").getValue(String::class.java)?.trim().orEmpty()
+                                val fallbackId = snapshot.key?.trim().orEmpty()
+                                return Film(
+                                    id = if (rawId.isNotBlank()) rawId else fallbackId,
+                                    numero = snapshot.child("numero").getValue(Int::class.java) ?: 0,
+                                    titre = snapshot.child("titre").getValue(String::class.java).orEmpty(),
+                                    annee = snapshot.child("annee").getValue(Int::class.java) ?: 0,
+                                    genre = snapshot.child("genre").getValue(String::class.java).orEmpty()
+                                )
+                            }
+
+                            fun collectFilmsRecursively(snapshot: DataSnapshot, collected: MutableMap<String, Film>) {
+                                if (isFilmNode(snapshot)) {
+                                    val film = toFilm(snapshot)
+                                    if (film.id.isNotBlank()) {
+                                        collected[film.id] = film
+                                    }
+                                }
+                                snapshot.children.forEach { child ->
+                                    collectFilmsRecursively(child, collected)
+                                }
+                            }
+
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                val collected = mutableMapOf<String, Film>()
+                                val searchEntries = mutableMapOf<String, SearchIndexEntry>()
+
+                                fun putFilmEntry(
+                                    film: Film,
+                                    category: String,
+                                    franchise: String,
+                                    saga: String
+                                ) {
+                                    if (film.id.isBlank()) return
+                                    collected[film.id] = film
+                                    searchEntries[film.id] = SearchIndexEntry(
+                                        filmId = film.id,
+                                        filmTitle = film.titre,
+                                        year = film.annee,
+                                        genre = film.genre,
+                                        franchise = franchise,
+                                        saga = saga,
+                                        category = category
+                                    )
+                                }
+
+                                snapshot.children.forEach { categorySnapshot ->
+                                    val categoryName = categorySnapshot.child("categorie").getValue(String::class.java).orEmpty()
+                                    categorySnapshot.child("franchises").children.forEach { franchiseSnapshot ->
+                                        val franchiseName = franchiseSnapshot.child("nom").getValue(String::class.java).orEmpty()
+
+                                        franchiseSnapshot.child("films").children.forEach { filmSnapshot ->
+                                            val film = toFilm(filmSnapshot)
+                                            putFilmEntry(film, categoryName, franchiseName, "")
+                                        }
+
+                                        franchiseSnapshot.child("sous_sagas").children.forEach { sagaSnapshot ->
+                                            val sagaName = sagaSnapshot.child("nom").getValue(String::class.java).orEmpty()
+                                            sagaSnapshot.child("films").children.forEach { filmSnapshot ->
+                                                val film = toFilm(filmSnapshot)
+                                                putFilmEntry(film, categoryName, franchiseName, sagaName)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (collected.isEmpty()) {
+                                    collectFilmsRecursively(snapshot, collected)
+                                }
+
+                                allFilmsById = collected
+                                searchIndexEntries = searchEntries.values.sortedBy { it.filmTitle }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                allFilmsById = emptyMap()
+                                searchIndexEntries = emptyList()
+                            }
+                        })
                 }
 
                 suspend fun fetchPosterUrlFromTmdb(title: String): String? {
@@ -348,6 +566,57 @@ class MainActivity : ComponentActivity() {
                     })
                 }
 
+                fun fetchRandomFilmUuid(onResult: (String?) -> Unit) {
+                    val categoriesRef = FirebaseDatabase.getInstance().reference.child("categories")
+                    categoriesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                        fun collectFilmIds(snapshot: DataSnapshot, collected: MutableList<String>) {
+                            val hasFilmShape = snapshot.hasChild("titre") && snapshot.hasChild("annee") && snapshot.hasChild("genre")
+                            if (hasFilmShape) {
+                                val rawId = snapshot.child("id").getValue(String::class.java)?.trim().orEmpty()
+                                val fallbackId = snapshot.key?.trim().orEmpty()
+                                val resolvedId = if (rawId.isNotBlank()) rawId else fallbackId
+                                if (resolvedId.isNotBlank()) {
+                                    collected.add(resolvedId)
+                                }
+                            }
+                            snapshot.children.forEach { child ->
+                                collectFilmIds(child, collected)
+                            }
+                        }
+
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            val ids = mutableListOf<String>()
+                            collectFilmIds(snapshot, ids)
+                            onResult(ids.randomOrNull())
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            onResult(null)
+                        }
+                    })
+                }
+
+                LaunchedEffect(Unit) {
+                    startListeningToFilmCatalog()
+
+                    fetchRandomFilmUuid { randomUuid ->
+                        if (!randomUuid.isNullOrBlank()) {
+                            requestedFilmUuid = randomUuid
+                        }
+                    }
+
+                    val existingUser = FirebaseAuth.getInstance().currentUser
+                    if (existingUser == null) {
+                        isLoading = false
+                        currentScreen = AppScreen.Auth
+                        userFilmStatuses = emptyMap()
+                        usersWantingToGetRid = emptyList()
+                    } else {
+                        isFirstTime = false
+                        startListeningToUserData()
+                    }
+                }
+
                 LaunchedEffect(currentScreen, requestedFilmUuid) {
                     if (currentScreen == AppScreen.Home) {
                         fetchFilmByUuid(requestedFilmUuid)
@@ -402,6 +671,21 @@ class MainActivity : ComponentActivity() {
                     } finally {
                         isTrailerLoading = false
                     }
+                }
+
+                LaunchedEffect(selectedFilm?.id) {
+                    fetchUsersWantingToGetRid(selectedFilm?.id)
+                }
+
+                val markedSections = markedMoviesStatusOrder.mapNotNull { statusKey ->
+                    val filmsForStatus = userFilmStatuses
+                        .asSequence()
+                        .filter { (_, selectedStatus) -> selectedStatus == statusKey }
+                        .mapNotNull { (filmId, _) -> allFilmsById[filmId] }
+                        .sortedBy { film -> film.numero }
+                        .toList()
+
+                    if (filmsForStatus.isNotEmpty()) statusKey to filmsForStatus else null
                 }
 
                 Surface(
@@ -479,31 +763,103 @@ class MainActivity : ComponentActivity() {
                                                 isFirstTime = isFirstTime,
                                                 onTimeout = { currentScreen = AppScreen.Home }
                                             )
-                                            AppScreen.Home -> MainScreen(
-                                                userName = userName,
-                                                pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
-                                                film = selectedFilm,
-                                                filmUuid = requestedFilmUuid,
-                                                isFilmLoading = isFilmLoading,
-                                                filmError = filmLoadError,
-                                                posterUrl = posterUrl,
-                                                isPosterLoading = isPosterLoading,
-                                                posterError = posterLoadError,
-                                                trailerUrl = trailerUrl,
-                                                isTrailerLoading = isTrailerLoading,
-                                                trailerError = trailerLoadError,
-                                                onRetryFilmLoad = { fetchFilmByUuid(requestedFilmUuid) },
-                                                onRetryPosterLoad = { posterRetryToken++ },
-                                                onRetryTrailerLoad = { trailerRetryToken++ },
-                                                onOpenTrailer = { url ->
-                                                    val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                                    startActivity(trailerIntent)
-                                                },
-                                                onProfileClick = {
-                                                    val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
-                                                    startActivity(intent)
+                                            AppScreen.Home,
+                                            AppScreen.Categories,
+                                            AppScreen.MarkedMovies,
+                                            AppScreen.Search -> Column(modifier = Modifier.fillMaxSize()) {
+                                                val currentPfpRes = if (selectedPfpIndex != -1) {
+                                                    profilePictures[selectedPfpIndex]
+                                                } else {
+                                                    R.drawable.pfp_mickey
                                                 }
-                                            )
+
+                                                PersistentTopHeader(
+                                                    userName = userName.ifEmpty { "Username" },
+                                                    pfpResId = currentPfpRes,
+                                                    onProfileClick = {
+                                                        val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
+                                                        startActivity(intent)
+                                                    }
+                                                )
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .fillMaxWidth()
+                                                ) {
+                                                    when (screen) {
+                                                        AppScreen.Home -> MainScreen(
+                                                            film = selectedFilm,
+                                                            filmUuid = requestedFilmUuid,
+                                                            isFilmLoading = isFilmLoading,
+                                                            filmError = filmLoadError,
+                                                            posterUrl = posterUrl,
+                                                            isPosterLoading = isPosterLoading,
+                                                            posterError = posterLoadError,
+                                                            trailerUrl = trailerUrl,
+                                                            isTrailerLoading = isTrailerLoading,
+                                                            trailerError = trailerLoadError,
+                                                            currentFilmStatus = selectedFilm?.id?.let { userFilmStatuses[it] },
+                                                            onCollectionStatusSelected = { statusKey ->
+                                                                selectedFilm?.id?.let { updateFilmCollectionStatus(it, statusKey) }
+                                                            },
+                                                            usersWantingToGetRid = usersWantingToGetRid,
+                                                            isLoadingUsersWantingToGetRid = isLoadingUsersWantingToGetRid,
+                                                            onRetryFilmLoad = { fetchFilmByUuid(requestedFilmUuid) },
+                                                            onRetryPosterLoad = { posterRetryToken++ },
+                                                            onRetryTrailerLoad = { trailerRetryToken++ },
+                                                            onOpenTrailer = { url ->
+                                                                val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                                startActivity(trailerIntent)
+                                                            }
+                                                        )
+
+                                                        AppScreen.Categories -> Prologue(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            filmStatuses = userFilmStatuses,
+                                                            onFilmSelected = { film ->
+                                                                val filmId = film.id.trim()
+                                                                if (filmId.isNotBlank()) {
+                                                                    requestedFilmUuid = filmId
+                                                                    currentScreen = AppScreen.Home
+                                                                }
+                                                            }
+                                                        )
+
+                                                        AppScreen.MarkedMovies -> MarkedMoviesScreen(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            markedSections = markedSections,
+                                                            onFilmSelected = { film ->
+                                                                val filmId = film.id.trim()
+                                                                if (filmId.isNotBlank()) {
+                                                                    requestedFilmUuid = filmId
+                                                                    currentScreen = AppScreen.Home
+                                                                }
+                                                            }
+                                                        )
+
+                                                        AppScreen.Search -> SearchScreen(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            entries = searchIndexEntries,
+                                                            onFilmSelected = { filmId ->
+                                                                if (filmId.isNotBlank()) {
+                                                                    requestedFilmUuid = filmId
+                                                                    currentScreen = AppScreen.Home
+                                                                }
+                                                            }
+                                                        )
+                                                        else -> Unit
+                                                    }
+                                                }
+
+                                                AppBottomNavBar(
+                                                    currentScreen = screen,
+                                                    onHomeClick = { currentScreen = AppScreen.Home },
+                                                    onCategoriesClick = { currentScreen = AppScreen.Categories },
+                                                    onFavoritesClick = { currentScreen = AppScreen.MarkedMovies },
+                                                    onSearchClick = { currentScreen = AppScreen.Search }
+                                                )
+                                            }
                                         }
                                     }
                                 }

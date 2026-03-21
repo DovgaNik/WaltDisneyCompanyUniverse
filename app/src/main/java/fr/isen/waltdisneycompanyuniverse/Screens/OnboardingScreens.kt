@@ -24,7 +24,12 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import fr.isen.waltdisneycompanyuniverse.R
+import fr.isen.waltdisneycompanyuniverse.datas.collectionNode
 import fr.isen.waltdisneycompanyuniverse.datas.pronounsList
+import fr.isen.waltdisneycompanyuniverse.datas.statusOwnDvdBluray
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToGetRid
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToWatch
+import fr.isen.waltdisneycompanyuniverse.datas.statusWatched
 
 @Composable
 fun OnboardingFlow(onFinish: () -> Unit) {
@@ -57,6 +62,12 @@ fun saveUserToFirebase(username: String, pronouns: Int, pfp: Int) {
             "username" to username,
             "pronouns" to pronouns,
             "pfp" to pfp
+        ),
+        collectionNode to mapOf(
+            statusWantToWatch to emptyMap<String, Boolean>(),
+            statusWatched to emptyMap<String, Boolean>(),
+            statusOwnDvdBluray to emptyMap<String, Boolean>(),
+            statusWantToGetRid to emptyMap<String, Boolean>()
         )
     )
 

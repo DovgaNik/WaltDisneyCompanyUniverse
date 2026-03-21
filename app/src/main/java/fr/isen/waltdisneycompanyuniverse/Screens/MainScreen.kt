@@ -26,16 +26,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import fr.isen.waltdisneycompanyuniverse.AppScreen
 import fr.isen.waltdisneycompanyuniverse.R
 import fr.isen.waltdisneycompanyuniverse.datas.Film
+import fr.isen.waltdisneycompanyuniverse.datas.statusOwnDvdBluray
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToGetRid
+import fr.isen.waltdisneycompanyuniverse.datas.statusWantToWatch
+import fr.isen.waltdisneycompanyuniverse.datas.statusWatched
 
 @Composable
 fun MainScreen(
-    userName: String,
-    pfpResId: Int,
     film: Film?,
     filmUuid: String,
     isFilmLoading: Boolean,
@@ -46,11 +50,14 @@ fun MainScreen(
     trailerUrl: String?,
     isTrailerLoading: Boolean,
     trailerError: String?,
+    currentFilmStatus: String? = null,
+    onCollectionStatusSelected: (String) -> Unit = {},
+    usersWantingToGetRid: List<String> = emptyList(),
+    isLoadingUsersWantingToGetRid: Boolean = false,
     onRetryFilmLoad: () -> Unit = {},
     onRetryPosterLoad: () -> Unit = {},
     onRetryTrailerLoad: () -> Unit = {},
-    onOpenTrailer: (String) -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onOpenTrailer: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val isFilmNotFound = !isFilmLoading && filmError == null && film == null
@@ -58,57 +65,17 @@ fun MainScreen(
     val displayedGenre = film?.genre?.takeIf { it.isNotBlank() } ?: "Unknown genre"
     val displayedYear = film?.annee?.takeIf { it > 0 }?.toString() ?: "N/A"
     
-    // Using a Column as the root ensures the Top Bar and the Content Area are physically separated
-    Column(
-        modifier = Modifier.fillMaxSize()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
     ) {
-        // Fixed Top Bar
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 32.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.disney_logo_white),
-                contentDescription = "Disney Logo",
-                modifier = Modifier.height(40.dp)
-            )
-
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            )
-
-            Image(
-                painter = painterResource(id = pfpResId),
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onProfileClick() },
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // Scrollable area and Bottom Bar
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            // Scrollable Content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
                 // Movie Poster
                 Card(
                     modifier = Modifier
@@ -143,13 +110,6 @@ fun MainScreen(
                 }
 
                 if (posterError != null && !isFilmLoading) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = posterError,
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodySmall
-                    )
                     TextButton(onClick = onRetryPosterLoad) {
                         Text(text = "Retry poster")
                     }
@@ -167,7 +127,7 @@ fun MainScreen(
                     }
                     filmError != null -> {
                         Text(
-                            text = "Failed to load film: $filmError",
+                            text = "Couldn't load this film right now.",
                             color = Color.White,
                             textAlign = TextAlign.Center
                         )
@@ -211,24 +171,48 @@ fun MainScreen(
                     modifier = Modifier.fillMaxWidth(0.6f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ActionItem(icon = Icons.Default.Add, text = "Want to watch")
-                    ActionItem(icon = Icons.Default.RemoveRedEye, text = "Watched")
-                    ActionItem(icon = Icons.Default.RadioButtonChecked, text = "Have a DVD / BlueRay")
+                    ActionItem(
+                        icon = Icons.Default.Add,
+                        text = "Want to watch",
+                        isSelected = currentFilmStatus == statusWantToWatch,
+                        onClick = { onCollectionStatusSelected(statusWantToWatch) }
+                    )
+                    ActionItem(
+                        icon = Icons.Default.RemoveRedEye,
+                        text = "Watched",
+                        isSelected = currentFilmStatus == statusWatched,
+                        onClick = { onCollectionStatusSelected(statusWatched) }
+                    )
+                    ActionItem(
+                        icon = Icons.Default.RadioButtonChecked,
+                        text = "Have a DVD / BlueRay",
+                        isSelected = currentFilmStatus == statusOwnDvdBluray,
+                        onClick = { onCollectionStatusSelected(statusOwnDvdBluray) }
+                    )
+                    ActionItem(
+                        icon = Icons.Default.FavoriteBorder,
+                        text = "Want to get rid",
+                        isSelected = currentFilmStatus == statusWantToGetRid,
+                        onClick = { onCollectionStatusSelected(statusWantToGetRid) }
+                    )
                 }
+
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = { trailerUrl?.let(onOpenTrailer) },
-                    enabled = trailerUrl != null && !isTrailerLoading
-                ) {
-                    Text(if (isTrailerLoading) "Loading trailer..." else "Watch trailer")
+                if (trailerError == null) {
+                    Button(
+                        onClick = { trailerUrl?.let(onOpenTrailer) },
+                        enabled = trailerUrl != null && !isTrailerLoading
+                    ) {
+                        Text(if (isTrailerLoading) "Loading trailer..." else "Watch trailer")
+                    }
                 }
 
                 if (trailerError != null && !isFilmLoading) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = trailerError,
+                        text = "Couldn't load the trailer right now.",
                         color = Color.White,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodySmall
@@ -240,7 +224,6 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Marie Card
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -248,68 +231,155 @@ fun MainScreen(
                     color = Color.White.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.pfp_cats),
-                            contentDescription = "Marie",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Marie wants to get rid of their copy",
+                            text = "Users wanting to get rid of this film",
                             color = Color.White,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        when {
+                            isLoadingUsersWantingToGetRid -> Text(
+                                text = "Loading users...",
+                                color = Color.White,
+                                fontSize = 13.sp
+                            )
+                            usersWantingToGetRid.isEmpty() -> Text(
+                                text = "No users currently marked this status.",
+                                color = Color.White,
+                                fontSize = 13.sp
+                            )
+                            else -> Text(
+                                text = usersWantingToGetRid.joinToString(separator = "\n") { "- $it" },
+                                color = Color.White,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
 
-                // Extra space for bottom nav
-                Spacer(modifier = Modifier.height(100.dp))
-            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
 
-            // Fixed Bottom Navigation Bar
+@Composable
+fun PersistentTopHeader(
+    userName: String,
+    pfpResId: Int,
+    onProfileClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.disney_logo_white),
+            contentDescription = "Disney Logo",
+            modifier = Modifier.height(40.dp)
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = userName,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            )
+
+            Surface(
+                onClick = onProfileClick,
+                shape = RoundedCornerShape(8.dp),
+                color = Color.Transparent
+            ) {
+                Image(
+                    painter = painterResource(id = pfpResId),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AppBottomNavBar(
+    currentScreen: AppScreen,
+    onHomeClick: () -> Unit,
+    onCategoriesClick: () -> Unit,
+    onFavoritesClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            color = Color.White,
+            shape = RoundedCornerShape(30.dp),
+            modifier = Modifier
+                .height(60.dp)
+                .weight(0.7f)
+        ) {
             Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    color = Color.White,
-                    shape = RoundedCornerShape(30.dp),
-                    modifier = Modifier.height(60.dp).weight(0.7f)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {}) { Icon(Icons.Default.Home, contentDescription = "Home", tint = Color.Black) }
-                        IconButton(onClick = {}) { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "List", tint = Color.Black) }
-                        IconButton(onClick = {}) { Icon(Icons.Default.FavoriteBorder, contentDescription = "Favorites", tint = Color.Black) }
-                    }
+                IconButton(onClick = onHomeClick) {
+                    Icon(
+                        Icons.Default.Home,
+                        contentDescription = "Home",
+                        tint = if (currentScreen == AppScreen.Home) Color(0xFF1A237E) else Color.Black
+                    )
                 }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-
-                FloatingActionButton(
-                    onClick = {},
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                    shape = CircleShape,
-                    modifier = Modifier.size(60.dp)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
+                IconButton(onClick = onCategoriesClick) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.List,
+                        contentDescription = "List",
+                        tint = if (currentScreen == AppScreen.Categories) Color(0xFF1A237E) else Color.Black
+                    )
+                }
+                IconButton(onClick = onFavoritesClick) {
+                    Icon(
+                        Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorites",
+                        tint = if (currentScreen == AppScreen.MarkedMovies) Color(0xFF1A237E) else Color.Black
+                    )
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        FloatingActionButton(
+            onClick = onSearchClick,
+            containerColor = Color.White,
+            contentColor = Color.Black,
+            shape = CircleShape,
+            modifier = Modifier.size(60.dp)
+        ) {
+            Icon(Icons.Default.Search, contentDescription = "Search")
         }
     }
 }
@@ -330,20 +400,28 @@ fun Tag(text: String) {
 }
 
 @Composable
-fun ActionItem(icon: ImageVector, text: String) {
+fun ActionItem(
+    icon: ImageVector,
+    text: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    val itemColor = if (isSelected) Color(0xFF656565) else Color.White
+
     Row(
+        modifier = Modifier.clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = text,
-            tint = Color.White,
+            tint = itemColor,
             modifier = Modifier.size(20.dp)
         )
         Text(
             text = text,
-            color = Color.White,
+            color = itemColor,
             fontSize = 13.sp
         )
     }

@@ -111,11 +111,10 @@ fun DisplayFranchises(modifier: Modifier = Modifier, ref: DatabaseReference, cat
                     modifier = Modifier
                         .fillMaxWidth(),
                     onClick = {
-                        // On regarde si c'est une saga ou des films.
-                        if (franchise.sous_sagas != emptyList<SousSaga>() && franchise.films == emptyList<Film>()){
-                            onFanchiseSousSagaClick(franchise.sous_sagas)
-                        } else if (franchise.sous_sagas == emptyList<SousSaga>() && franchise.films != emptyList<Film>()){
-                            onFranchiseFilmsClick(franchise.films)
+                        // Handle both schemas safely: prefer sub-sagas when present, otherwise direct films.
+                        when {
+                            franchise.sous_sagas.isNotEmpty() -> onFanchiseSousSagaClick(franchise.sous_sagas)
+                            franchise.films.isNotEmpty() -> onFranchiseFilmsClick(franchise.films)
                         }
                     },
                     colors = CardDefaults.cardColors(

@@ -52,6 +52,7 @@ import fr.isen.waltdisneycompanyuniverse.Screens.AuthScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.AppBottomNavBar
 import fr.isen.waltdisneycompanyuniverse.Screens.MainScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.NameOnboardingScreen
+import fr.isen.waltdisneycompanyuniverse.Screens.PersistentTopHeader
 import fr.isen.waltdisneycompanyuniverse.Screens.Prologue
 import fr.isen.waltdisneycompanyuniverse.Screens.ProfilePictureOnboardingScreen
 import fr.isen.waltdisneycompanyuniverse.Screens.PronounsOnboardingScreen
@@ -512,6 +513,21 @@ class MainActivity : ComponentActivity() {
                                             )
                                             AppScreen.Home,
                                             AppScreen.Categories -> Column(modifier = Modifier.fillMaxSize()) {
+                                                val currentPfpRes = if (selectedPfpIndex != -1) {
+                                                    profilePictures[selectedPfpIndex]
+                                                } else {
+                                                    R.drawable.pfp_mickey
+                                                }
+
+                                                PersistentTopHeader(
+                                                    userName = userName.ifEmpty { "Username" },
+                                                    pfpResId = currentPfpRes,
+                                                    onProfileClick = {
+                                                        val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
+                                                        startActivity(intent)
+                                                    }
+                                                )
+
                                                 Box(
                                                     modifier = Modifier
                                                         .weight(1f)
@@ -519,8 +535,6 @@ class MainActivity : ComponentActivity() {
                                                 ) {
                                                     when (screen) {
                                                         AppScreen.Home -> MainScreen(
-                                                            userName = userName,
-                                                            pfpResId = if (selectedPfpIndex != -1) profilePictures[selectedPfpIndex] else R.drawable.pfp_mickey,
                                                             film = selectedFilm,
                                                             filmUuid = requestedFilmUuid,
                                                             isFilmLoading = isFilmLoading,
@@ -537,10 +551,6 @@ class MainActivity : ComponentActivity() {
                                                             onOpenTrailer = { url ->
                                                                 val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                                                 startActivity(trailerIntent)
-                                                            },
-                                                            onProfileClick = {
-                                                                val intent = Intent(this@MainActivity, EditProfileActivity::class.java)
-                                                                startActivity(intent)
                                                             }
                                                         )
 

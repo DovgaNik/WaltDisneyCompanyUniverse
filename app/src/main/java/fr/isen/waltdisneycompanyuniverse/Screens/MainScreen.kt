@@ -1,7 +1,6 @@
 package fr.isen.waltdisneycompanyuniverse.Screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -35,8 +34,6 @@ import fr.isen.waltdisneycompanyuniverse.datas.Film
 
 @Composable
 fun MainScreen(
-    userName: String,
-    pfpResId: Int,
     film: Film?,
     filmUuid: String,
     isFilmLoading: Boolean,
@@ -50,8 +47,7 @@ fun MainScreen(
     onRetryFilmLoad: () -> Unit = {},
     onRetryPosterLoad: () -> Unit = {},
     onRetryTrailerLoad: () -> Unit = {},
-    onOpenTrailer: (String) -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onOpenTrailer: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val isFilmNotFound = !isFilmLoading && filmError == null && film == null
@@ -59,57 +55,17 @@ fun MainScreen(
     val displayedGenre = film?.genre?.takeIf { it.isNotBlank() } ?: "Unknown genre"
     val displayedYear = film?.annee?.takeIf { it > 0 }?.toString() ?: "N/A"
     
-    // Using a Column as the root ensures the Top Bar and the Content Area are physically separated
-    Column(
-        modifier = Modifier.fillMaxSize()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
     ) {
-        // Fixed Top Bar
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 32.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.disney_logo_white),
-                contentDescription = "Disney Logo",
-                modifier = Modifier.height(40.dp)
-            )
-
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            )
-
-            Image(
-                painter = painterResource(id = pfpResId),
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onProfileClick() },
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // Scrollable area and Bottom Bar
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            // Scrollable Content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
                 // Movie Poster
                 Card(
                     modifier = Modifier
@@ -270,8 +226,52 @@ fun MainScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun PersistentTopHeader(
+    userName: String,
+    pfpResId: Int,
+    onProfileClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.disney_logo_white),
+            contentDescription = "Disney Logo",
+            modifier = Modifier.height(40.dp)
+        )
+
+        Text(
+            text = userName,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        )
+
+        Surface(
+            onClick = onProfileClick,
+            shape = RoundedCornerShape(8.dp),
+            color = Color.Transparent
+        ) {
+            Image(
+                painter = painterResource(id = pfpResId),
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }

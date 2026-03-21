@@ -1,5 +1,6 @@
 package fr.isen.waltdisneycompanyuniverse.Screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -57,13 +59,18 @@ fun MainScreen(
     onRetryFilmLoad: () -> Unit = {},
     onRetryPosterLoad: () -> Unit = {},
     onRetryTrailerLoad: () -> Unit = {},
-    onOpenTrailer: (String) -> Unit = {}
+    onOpenTrailer: (String) -> Unit = {},
+    onBack: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val isFilmNotFound = !isFilmLoading && filmError == null && film == null
     val displayedTitle = film?.titre?.takeIf { it.isNotBlank() } ?: "Unknown movie"
     val displayedGenre = film?.genre?.takeIf { it.isNotBlank() } ?: "Unknown genre"
     val displayedYear = film?.annee?.takeIf { it > 0 }?.toString() ?: "N/A"
+
+    if (onBack != null) {
+        BackHandler(onBack = onBack)
+    }
     
     Box(
         modifier = Modifier
@@ -76,6 +83,25 @@ fun MainScreen(
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+                if (onBack != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 // Movie Poster
                 Card(
                     modifier = Modifier

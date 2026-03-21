@@ -91,6 +91,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             WaltDisneyCompanyUniverseTheme(darkTheme = true) {
                 var currentScreen by remember { mutableStateOf(AppScreen.Auth) }
+                var previousScreen by remember { mutableStateOf<AppScreen?>(null) }
                 var userName by remember { mutableStateOf("") }
                 var userPronounsIndex by remember { mutableIntStateOf(-1) }
                 var selectedPfpIndex by remember { mutableIntStateOf(-1) }
@@ -811,6 +812,12 @@ class MainActivity : ComponentActivity() {
                                                             onOpenTrailer = { url ->
                                                                 val trailerIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                                                 startActivity(trailerIntent)
+                                                            },
+                                                            onBack = previousScreen?.let { prev ->
+                                                                {
+                                                                    currentScreen = prev
+                                                                    previousScreen = null
+                                                                }
                                                             }
                                                         )
 
@@ -821,6 +828,7 @@ class MainActivity : ComponentActivity() {
                                                                 val filmId = film.id.trim()
                                                                 if (filmId.isNotBlank()) {
                                                                     requestedFilmUuid = filmId
+                                                                    previousScreen = AppScreen.Categories
                                                                     currentScreen = AppScreen.Home
                                                                 }
                                                             }
@@ -833,6 +841,7 @@ class MainActivity : ComponentActivity() {
                                                                 val filmId = film.id.trim()
                                                                 if (filmId.isNotBlank()) {
                                                                     requestedFilmUuid = filmId
+                                                                    previousScreen = AppScreen.MarkedMovies
                                                                     currentScreen = AppScreen.Home
                                                                 }
                                                             }
@@ -844,6 +853,7 @@ class MainActivity : ComponentActivity() {
                                                             onFilmSelected = { filmId ->
                                                                 if (filmId.isNotBlank()) {
                                                                     requestedFilmUuid = filmId
+                                                                    previousScreen = AppScreen.Search
                                                                     currentScreen = AppScreen.Home
                                                                 }
                                                             }
@@ -854,7 +864,10 @@ class MainActivity : ComponentActivity() {
 
                                                 AppBottomNavBar(
                                                     currentScreen = screen,
-                                                    onHomeClick = { currentScreen = AppScreen.Home },
+                                                    onHomeClick = { 
+                                                        previousScreen = null
+                                                        currentScreen = AppScreen.Home 
+                                                    },
                                                     onCategoriesClick = { currentScreen = AppScreen.Categories },
                                                     onFavoritesClick = { currentScreen = AppScreen.MarkedMovies },
                                                     onSearchClick = { currentScreen = AppScreen.Search }

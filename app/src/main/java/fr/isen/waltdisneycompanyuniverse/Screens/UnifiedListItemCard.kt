@@ -107,7 +107,7 @@ fun UnifiedListItemCard(
         }
     }
 
-    val textColor = Color(0xFF151515)
+    val textColor = Color.White
 
     Card(
         modifier = Modifier
@@ -146,7 +146,7 @@ fun UnifiedListItemCard(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = textColor
+                        color = textColor.copy(alpha = 0.8f)
                     )
                 }
                 if (!statusText.isNullOrBlank()) {
@@ -154,11 +154,10 @@ fun UnifiedListItemCard(
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = textColor
+                        color = textColor.copy(alpha = 0.6f)
                     )
                 }
             }
         }
     }
 }
-

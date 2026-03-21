@@ -2,6 +2,7 @@ package fr.isen.waltdisneycompanyuniverse.Screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,12 @@ import androidx.compose.ui.Modifier
 import fr.isen.waltdisneycompanyuniverse.datas.Film
 import fr.isen.waltdisneycompanyuniverse.datas.statusLabel
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 
@@ -33,6 +40,19 @@ fun DisplayFilms(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
+        Row(
+            modifier = Modifier.padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+        }
+
         LazyColumn {
             items(films) { film ->
                 val statusKey = filmStatuses[film.id]
